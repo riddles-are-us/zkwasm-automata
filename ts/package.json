@@ -20,10 +20,10 @@
     "sync-fetch": "^0.5.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5",
-    "zkwasm-minirollup-rpc": "github:DelphinusLab/zkWasm-minirollup-rpc",
+    "zkwasm-minirollup-rpc": "github:DelphinusLab/zkWasm-minirollup-rpc#79862077f708ddf3c685471ddb7c3c262f5888e4",
     "zkwasm-service-cli": "git+https://github.com/DelphinusLab/zkWasm-service-cli.git",
     "zkwasm-service-helper": "github:DelphinusLab/zkWasm-service-helper",
-    "zkwasm-ts-server": "https://gitpkg.vercel.app/DelphinusLab/zkwasm-mini-rollup/ts?release-v1"
+    "zkwasm-ts-server": "https://gitpkg.vercel.app/DelphinusLab/zkwasm-mini-rollup/ts?release-v1#846520e02394e22f69ad3d082de69325eda0d3b5"
   },
   "scripts": {
     "build": "npx tsc",

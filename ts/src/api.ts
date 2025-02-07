@@ -1,4 +1,4 @@
-import { PlayerConvention, ZKWasmAppRpc } from "zkwasm-minirollup-rpc";
+import { PlayerConvention, ZKWasmAppRpc, createCommand } from "zkwasm-minirollup-rpc";
 
 /* The modifier mush less than eight */
 function encode_modifier(modifiers: Array<bigint>) {
@@ -27,7 +27,7 @@ export class Player extends PlayerConvention {
   async installPlayer() {
     try {
       let result = await this.rpc.sendTransaction(
-        this.createCommand(0n, CMD_INSTALL_PLAYER, []),
+        createCommand(0n, CMD_INSTALL_PLAYER, []),
         this.processingKey
       );
       return result;
@@ -43,7 +43,7 @@ export class Player extends PlayerConvention {
     let nonce = await this.getNonce();
     try {
       let result = await this.rpc.sendTransaction(
-        this.createCommand(nonce, CMD_INSTALL_OBJECT, [objid, encode_modifier(modifiers)]),
+        createCommand(nonce, CMD_INSTALL_OBJECT, [objid, encode_modifier(modifiers)]),
         this.processingKey
       );
       return result
@@ -59,7 +59,7 @@ export class Player extends PlayerConvention {
     let nonce = await this.getNonce();
     try {
       let finished = await this.rpc.sendTransaction(
-        this.createCommand(nonce, CMD_RESTART_OBJECT, [objid, encode_modifier(modifiers)]),
+        createCommand(nonce, CMD_RESTART_OBJECT, [objid, encode_modifier(modifiers)]),
         this.processingKey
       );
       console.log("restartObject processed at:", finished);
@@ -76,7 +76,7 @@ export class Player extends PlayerConvention {
     let nonce = await this.getNonce();
     try {
       let finished = await this.rpc.sendTransaction(
-        this.createCommand(nonce, CMD_UPGRADE_OBJECT, [objid, featureId]),
+        createCommand(nonce, CMD_UPGRADE_OBJECT, [objid, featureId]),
         this.processingKey
       );
       console.log("upgradeObject processed at:", finished);
@@ -93,7 +93,7 @@ export class Player extends PlayerConvention {
     let nonce = await this.getNonce();
     try {
       let finished = await this.rpc.sendTransaction(
-        this.createCommand(nonce, CMD_INSTALL_CARD, []),
+        createCommand(nonce, CMD_INSTALL_CARD, []),
         this.processingKey
       );
       console.log("installCard processed at:", finished);

@@ -142,7 +142,7 @@ impl PlayerData {
         } else {
             let card = self.cards[object.cards[current_index] as usize].clone();
             let applied = self.apply_modifier(&card, &object);
-            zkwasm_rust_sdk::dbg!("applied modifier!\n");
+            //zkwasm_rust_sdk::dbg!("applied modifier!\n");
             let object = self.objects.get_mut(object_index).unwrap();
             if applied {
                 //zkwasm_rust_sdk::dbg!("object after: {:?}\n", object);
@@ -173,7 +173,7 @@ impl PlayerData {
             let modifier_index = object.get_modifier_index();
             let duration = self.cards[object.cards[modifier_index as usize] as usize].duration;
             object.restart(counter);
-            zkwasm_rust_sdk::dbg!("object restarted\n");
+            //zkwasm_rust_sdk::dbg!("object restarted\n");
             Some(duration as usize)
         } else {
             object.reset_modifier(data);
@@ -269,12 +269,12 @@ pub trait Owner: Sized {
 
 impl Owner for AutomataPlayer {
     fn store(&self) {
-        zkwasm_rust_sdk::dbg!("store player\n");
+        //zkwasm_rust_sdk::dbg!("store player\n");
         let mut data = Vec::new();
         self.data.to_data(&mut data);
         let kvpair = unsafe { &mut MERKLE_MAP };
         kvpair.set(&Self::to_key(&self.player_id), data.as_slice());
-        zkwasm_rust_sdk::dbg!("end store player\n");
+        //zkwasm_rust_sdk::dbg!("end store player\n");
     }
     fn new(pkey: &[u64; 4]) -> Self {
         Self::new_from_pid(Self::pkey_to_pid(pkey))

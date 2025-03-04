@@ -91,7 +91,7 @@ pub fn random_modifier(current_resource: [i64; LOCAL_ATTRIBUTES_SIZE], rand: u64
         weight = weight + (attrs[i] as i64) * (LOCAL_RESOURCE_WEIGHT[i] as i64)
     }
     weight += 5;
-    zkwasm_rust_sdk::dbg!("random modifier weight {}\n", weight);
+    //zkwasm_rust_sdk::dbg!("random modifier weight {}\n", weight);
 
     let duration = if weight < 0 { 15 } else { weight * 40 + 15 };
 

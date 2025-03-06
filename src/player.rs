@@ -191,7 +191,11 @@ impl PlayerData {
             }
         }
         for (a, b) in self.local.0.iter_mut().zip(m.iter()) {
-            *a += *b + productivity;
+            if *b < 0 {
+                *a += *b + reduce;
+            } else if *b > 0 {
+                *a += *b + productivity;
+            }
         }
         return true;
     }

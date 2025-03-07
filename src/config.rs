@@ -44,7 +44,8 @@ pub fn default_local() -> [i64; LOCAL_ATTRIBUTES_SIZE] {
 }
 
 const LOCAL_RESOURCE_WEIGHT: [u64; LOCAL_ATTRIBUTES_SIZE] = [1, 1, 2, 4, 8, 16, 32, 128];
-pub const COST_INCREASE_ROUND: u16 = 5;
+pub const COST_INCREASE_ROUND: u16 = 4;
+pub const COST_INCREASE_ROUND_INITIAL: u16 = 2;
 pub const INITIAL_ENERGY: u16 = 256;
 
 pub fn random_modifier(current_resource: [i64; LOCAL_ATTRIBUTES_SIZE], rand: u64) -> Card {

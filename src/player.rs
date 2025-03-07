@@ -1,5 +1,5 @@
 use crate::card::{Card, DEFAULT_CARDS};
-use crate::config::COST_INCREASE_ROUND;
+use crate::config::{COST_INCREASE_ROUND, COST_INCREASE_ROUND_INITIAL};
 use crate::config::{default_local, random_modifier, INITIAL_ENERGY};
 use crate::error::ERROR_NOT_ENOUGH_BALANCE;
 use crate::object::Object;
@@ -47,7 +47,7 @@ impl Default for PlayerData {
             exp: 0,
             last_check_point: 0,
             energy: INITIAL_ENERGY,
-            cost_info: COST_INCREASE_ROUND,
+            cost_info: COST_INCREASE_ROUND_INITIAL,
             current_cost: 0,
             redeem_info: [0; 8],
             objects: vec![],

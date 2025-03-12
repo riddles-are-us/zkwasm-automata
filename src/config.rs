@@ -94,7 +94,7 @@ pub fn random_modifier(current_resource: [i64; LOCAL_ATTRIBUTES_SIZE], rand: u64
     weight += 5;
     //zkwasm_rust_sdk::dbg!("random modifier weight {}\n", weight);
 
-    let duration = if weight < 0 { 15 } else { weight * 40 + 15 };
+    let duration = if weight < 0 { 15 } else { weight * 30 + 300 };
 
     Card {
         duration: duration as u64,

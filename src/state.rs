@@ -87,20 +87,27 @@ impl CommandHandler for InstallObject {
                 player.check_and_inc_nonce(nonce);
                 let objindex = player.data.objects.len();
                 unsafe { require(objindex == self.object_index) };
-                player.data.pay_cost()?;
-                let cards = self.modifiers;
-                let mut object = Object::new(cards);
-                let counter = STATE.0.borrow().queue.counter;
-                object.start_new_modifier(0, counter);
-                let delay = player.data.cards[object.cards[0] as usize].duration;
-                player.data.objects.push(object);
-                player.store();
-                STATE.0.borrow_mut().queue.insert(Event {
-                    object_index: self.object_index ,
-                    owner: *pid,
-                    delta: delay as usize,
-                });
-                Ok(()) // no error occurred
+                let level = player.data.level as usize;
+                if objindex > level + 1 {
+                    Err(ERROR_NOT_ENOUGH_LEVEL)
+                } else if objindex > 16 {
+                    Err(ERROR_INDEX_OUT_OF_BOUND)
+                } else {
+                    player.data.pay_cost()?;
+                    let cards = self.modifiers;
+                    let mut object = Object::new(cards);
+                    let counter = STATE.0.borrow().queue.counter;
+                    object.start_new_modifier(0, counter);
+                    let delay = player.data.cards[object.cards[0] as usize].duration;
+                    player.data.objects.push(object);
+                    player.store();
+                    STATE.0.borrow_mut().queue.insert(Event {
+                        object_index: self.object_index ,
+                        owner: *pid,
+                        delta: delay as usize,
+                    });
+                    Ok(()) // no error occurred
+                }
             }
         }
     }
@@ -151,10 +158,15 @@ impl CommandHandler for InstallCard {
             None => Err(ERROR_PLAYER_NOT_EXIST),
             Some(player) => {
                 player.check_and_inc_nonce(nonce);
-                player.data.pay_cost()?;
-                player.data.generate_card(rand);
-                player.store();
-                Ok(())
+                let level = player.data.level as usize;
+                if player.data.cards.len() > 4 * level + 4 {
+                    Err(ERROR_NOT_ENOUGH_LEVEL)
+                } else {
+                    player.data.pay_cost()?;
+                    player.data.generate_card(rand);
+                    player.store();
+                    Ok(())
+                }
             }
         }
     }
@@ -173,21 +185,29 @@ impl CommandHandler for Bounty {
             None => Err(ERROR_PLAYER_ALREADY_EXIST),
             Some(player) => {
                 player.check_and_inc_nonce(nonce);
-                if let Some(v) = player.data.local.0.get(self.bounty_index) {
-                    let redeem_info = player.data.redeem_info[self.bounty_index];
-                    let cost = CONFIG.get_bounty_cost(redeem_info as u64);
-                    if *v > cost as i64 {
-                        player.data.local.0[self.bounty_index] = v - (cost as i64);
-                        player.data.redeem_info[self.bounty_index] += 1;
-                        let reward = CONFIG.get_bounty_reward(redeem_info as u64);
-                        player.data.cost_balance(-(reward as i64))?;
-                        player.store();
-                        Ok(())
+                if self.bounty_index < 7 {
+                    if let Some(v) = player.data.local.0.get(self.bounty_index) {
+                        let redeem_info = player.data.redeem_info[self.bounty_index];
+                        let cost = CONFIG.get_bounty_cost(redeem_info as u64);
+                        if *v > cost as i64 {
+                            player.data.local.0[self.bounty_index] = v - (cost as i64);
+                            player.data.redeem_info[self.bounty_index] += 1;
+                            let reward = CONFIG.get_bounty_reward(redeem_info as u64);
+                            player.data.cost_balance(-(reward as i64))?;
+                            player.store();
+                            Ok(())
+                        } else {
+                            Err(ERROR_NOT_ENOUGH_RESOURCE)
+                        }
                     } else {
-                        Err(ERROR_NOT_ENOUGH_RESOURCE)
+                        Err(ERROR_INDEX_OUT_OF_BOUND)
                     }
                 } else {
-                    Err(ERROR_INDEX_OUT_OF_BOUND)
+                    unsafe {require(self.bounty_index == 7)};
+                    let counter = STATE.0.borrow().queue.counter;
+                    player.data.collect_interest(counter)?;
+                    player.store();
+                    Ok(())
                 }
             }
         }
@@ -206,14 +226,17 @@ impl CommandHandler for Deposit {
         let mut admin = AutomataPlayer::get_from_pid(pid).unwrap();
         admin.check_and_inc_nonce(nonce);
         let mut player = AutomataPlayer::get_from_pid(&[self.data[0], self.data[1]]);
+        let counter = STATE.0.borrow().queue.counter;
         match player.as_mut() {
             None => {
                 let mut player = AutomataPlayer::new_from_pid([self.data[0], self.data[1]]);
                 player.data.cost_balance(-(self.data[2] as i64))?;
+                player.data.update_interest(counter);
                 player.store();
             }
             Some(player) => {
                 player.data.cost_balance(-(self.data[2] as i64))?;
+                player.data.update_interest(counter);
                 player.store();
             }
         };
@@ -268,6 +291,7 @@ impl Transaction {
             ERROR_NOT_ENOUGH_BALANCE => "NotEnoughBalance",
             ERROR_INDEX_OUT_OF_BOUND => "IndexOutofBound",
             ERROR_NOT_ENOUGH_RESOURCE => "NotEnoughResource",
+            ERROR_NOT_ENOUGH_LEVEL => "NotEnoughLevel",
             _ => "Unknown",
         }
     }
@@ -322,16 +346,19 @@ impl Transaction {
 
     pub fn install_player(pid: &[u64; 2]) -> Result<(), u32> {
         let player = AutomataPlayer::get_from_pid(pid);
+        let counter = STATE.0.borrow().queue.counter;
         match player {
             Some(_) => Err(ERROR_PLAYER_ALREADY_EXIST),
             None => {
-                let player = AutomataPlayer::new_from_pid(*pid);
+                let mut player = AutomataPlayer::new_from_pid(*pid);
+                player.data.last_interest_stamp = counter;
                 player.store();
                 Ok(())
             }
         }
 
     }
+
     pub fn collect_energy(pid: &[u64; 2]) -> Result<(), u32> {
         let player = AutomataPlayer::get_from_pid(pid);
         let counter = STATE.0.borrow().queue.counter;
@@ -345,8 +372,18 @@ impl Transaction {
         }
     }
 
-
-
+    pub fn collect_interest(pid: &[u64; 2]) -> Result<(), u32> {
+        let player = AutomataPlayer::get_from_pid(pid);
+        let counter = STATE.0.borrow().queue.counter;
+        match player {
+            Some(mut player) => {
+                player.data.collect_energy(counter)?;
+                player.store();
+                Ok(())
+            }
+            None => Err(ERROR_PLAYER_NOT_EXIST),
+        }
+    }
 
     pub fn process(&self, pkey: &[u64; 4], rand: &[u64; 4]) -> Vec<u64> {
         let b = match self.command.clone() {
@@ -392,6 +429,7 @@ lazy_static::lazy_static! {
 
 pub struct State {
     supplier: u64,
+    start_time_stamp: u64,
     queue: EventQueue<Event>,
 }
 
@@ -399,6 +437,7 @@ impl State {
     pub fn new() -> Self {
         State {
             supplier: 1000,
+            start_time_stamp: 0,
             queue: EventQueue::new(),
         }
     }
@@ -413,7 +452,8 @@ impl State {
 
     pub fn preempt() -> bool {
         let counter = STATE.0.borrow().queue.counter;
-        if counter % 20 == 0 {
+        let timestamp = STATE.0.borrow().start_time_stamp;
+        if counter % 20 == 0  && counter != timestamp {
             true
         } else {
             false
@@ -447,6 +487,7 @@ impl State {
             let mut data = data.iter_mut();
             state.supplier = *data.next().unwrap();
             state.queue = EventQueue::from_data(&mut data);
+            state.start_time_stamp = state.queue.counter;
         }
     }
 }

@@ -35,6 +35,7 @@ pub struct PlayerData {
     pub cost_info: u16,
     pub current_cost: u32,
     pub redeem_info: [u8; 8],
+    pub last_interest_stamp: u64,
     pub objects: Vec<Object>,
     pub local: Attributes,
     pub cards: Vec<Card>,
@@ -50,6 +51,7 @@ impl Default for PlayerData {
             cost_info: COST_INCREASE_ROUND_INITIAL,
             current_cost: 0,
             redeem_info: [0; 8],
+            last_interest_stamp: 0,
             objects: vec![],
             local: Attributes::default_local(),
             cards: DEFAULT_CARDS.clone(),
@@ -102,6 +104,18 @@ impl PlayerData {
         }
     }
 
+    fn get_balance(&self) -> u64 {
+        if let Some(treasure) = self.local.0.last() {
+            *treasure as u64
+        } else {
+            unreachable!();
+        }
+    }
+
+    pub fn update_interest(&mut self, counter: u64) {
+        self.last_interest_stamp = (self.get_balance() << 32) + counter
+    }
+
     pub fn upgrade_object(&mut self, object_index: usize, index: usize) {
         let object = self.objects.get_mut(object_index).unwrap();
         unsafe { zkwasm_rust_sdk::require(object.attributes[0] < 128) };
@@ -125,6 +139,15 @@ impl PlayerData {
         }
         self.last_check_point = counter as u32;
         self.cost_balance(1)
+    }
+
+    pub fn collect_interest(&mut self, counter: u64) -> Result <(), u32> {
+        let balance = self.last_interest_stamp >> 32;
+        let timestamp = self.last_interest_stamp & 0xffffffff;
+        let delta = counter - timestamp;
+        let interest = ((self.level as u64) * balance * delta / (100000 * 20000)) as i64;
+        self.last_interest_stamp = (self.get_balance() << 32) + counter;
+        self.cost_balance(100 - interest)
     }
 
     pub fn apply_object_card(&mut self, object_index: usize, counter: u64) -> Option<usize> {
@@ -206,6 +229,7 @@ impl StorageData for PlayerData {
         let player_info = *u64data.next().unwrap();
         let cost_info = *u64data.next().unwrap();
         let redeem_info = *u64data.next().unwrap();
+        let last_interest_stamp = *u64data.next().unwrap();
         let objects_size = *u64data.next().unwrap();
         let mut objects = Vec::with_capacity(objects_size as usize);
         for _ in 0..objects_size {
@@ -231,6 +255,7 @@ impl StorageData for PlayerData {
             cost_info: ((cost_info >> 32) & 0xffff) as u16,
             redeem_info: redeem_info.to_le_bytes(),
             current_cost: (cost_info & 0xffffffff) as u32,
+            last_interest_stamp,
             objects,
             local: Attributes(local),
             cards,
@@ -248,6 +273,7 @@ impl StorageData for PlayerData {
             + (self.current_cost as u64),
         );
         data.push(u64::from_le_bytes(self.redeem_info));
+        data.push(self.last_interest_stamp);
         data.push(self.objects.len() as u64);
         for c in self.objects.iter() {
             c.to_data(data);

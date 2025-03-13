@@ -78,10 +78,10 @@ pub fn random_modifier(current_resource: [i64; LOCAL_ATTRIBUTES_SIZE], rand: u64
     attrs[output1 as usize] += cost1 as i64;
     attrs[output2 as usize] += cost2 as i64;
     let attrs = attrs.map(|x| {
-        if x > 64 {
-            64 as i8
-        } else if x < -64 {
-            -64 as i8
+        if x > 120 {
+            120 as i8
+        } else if x < -120 {
+            -120 as i8
         } else {
             x as i8
         }
@@ -94,7 +94,7 @@ pub fn random_modifier(current_resource: [i64; LOCAL_ATTRIBUTES_SIZE], rand: u64
     weight += 5;
     //zkwasm_rust_sdk::dbg!("random modifier weight {}\n", weight);
 
-    let duration = if weight < 0 { 15 } else { weight * 30 + 300 };
+    let duration = if weight < 0 { 45 } else { weight * 30 + 300 };
 
     Card {
         duration: duration as u64,

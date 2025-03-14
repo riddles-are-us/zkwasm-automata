@@ -159,7 +159,7 @@ impl CommandHandler for InstallCard {
             Some(player) => {
                 player.check_and_inc_nonce(nonce);
                 let level = player.data.level as usize;
-                if player.data.cards.len() < 4 * level + 4 {
+                if player.data.cards.len() < 4 * level + 6 {
                     Err(ERROR_NOT_ENOUGH_LEVEL)
                 } else {
                     player.data.pay_cost()?;
@@ -253,17 +253,22 @@ pub struct Withdraw {
 impl CommandHandler for Withdraw {
     fn handle(&self, pid: &[u64; 2], nonce: u64, _rand: &[u64; 4]) -> Result<(), u32> {
         let mut player = AutomataPlayer::get_from_pid(pid);
+        let state = STATE.0.borrow();
         match player.as_mut() {
             None => Err(ERROR_PLAYER_NOT_EXIST),
             Some(player) => {
                 player.check_and_inc_nonce(nonce);
                 let amount = self.data[0] & 0xffffffff;
-                player.data.cost_balance(amount as i64)?;
-                let withdrawinfo =
-                    WithdrawInfo::new(&[self.data[0], self.data[1], self.data[2]], 0);
-                SettlementInfo::append_settlement(withdrawinfo);
-                player.store();
-                Ok(())
+                if amount <= state.bounty_pool {
+                    player.data.cost_balance(amount as i64)?;
+                    let withdrawinfo =
+                        WithdrawInfo::new(&[self.data[0], self.data[1], self.data[2]], 0);
+                    SettlementInfo::append_settlement(withdrawinfo);
+                    player.store();
+                    Ok(())
+                } else {
+                    Err(ERROR_NOT_ENOUGH_POOL)
+                }
             }
         }
     }
@@ -292,6 +297,7 @@ impl Transaction {
             ERROR_INDEX_OUT_OF_BOUND => "IndexOutofBound",
             ERROR_NOT_ENOUGH_RESOURCE => "NotEnoughResource",
             ERROR_NOT_ENOUGH_LEVEL => "NotEnoughLevel",
+            ERROR_NOT_ENOUGH_POOL => "NotEnoughFundInPool",
             _ => "Unknown",
         }
     }
@@ -429,6 +435,7 @@ lazy_static::lazy_static! {
 
 pub struct State {
     supplier: u64,
+    bounty_pool: u64,
     start_time_stamp: u64,
     queue: EventQueue<Event>,
 }
@@ -438,6 +445,7 @@ impl State {
         State {
             supplier: 1000,
             start_time_stamp: 0,
+            bounty_pool: 10000000,
             queue: EventQueue::new(),
         }
     }
@@ -472,6 +480,7 @@ impl State {
         let mut state = STATE.0.borrow_mut();
         let mut v = Vec::with_capacity(state.queue.list.len() + 10);
         v.push(state.supplier);
+        v.push(state.bounty_pool);
         state.queue.to_data(&mut v);
         let kvpair = unsafe { &mut MERKLE_MAP };
         kvpair.set(&[0, 0, 0, 0], v.as_slice());
@@ -486,6 +495,7 @@ impl State {
         if !data.is_empty() {
             let mut data = data.iter_mut();
             state.supplier = *data.next().unwrap();
+            state.bounty_pool = *data.next().unwrap();
             state.queue = EventQueue::from_data(&mut data);
             state.start_time_stamp = state.queue.counter;
         }

@@ -54,7 +54,7 @@ impl EventHandler for Event {
                 } else {
                     player.data.energy -= (object_index + 1) as u16;
                 }
-                player.data.inc_exp();
+                player.data.inc_exp(1);
             }
             Some(Event {
                 owner: owner_id,

@@ -121,11 +121,12 @@ impl PlayerData {
         unsafe { zkwasm_rust_sdk::require(object.attributes[0] < 128) };
         object.attributes[0] += 1;
         object.attributes[index] += 1;
+        self.inc_exp(10);
     }
 
-    pub fn inc_exp(&mut self) {
-        self.exp += 1;
-        if self.exp >= 100 {
+    pub fn inc_exp(&mut self, a: u16) {
+        self.exp += a;
+        if self.exp >= 100 + self.level * 10 {
             self.level += 1;
             self.exp = 0;
         }

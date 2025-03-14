@@ -49,7 +49,11 @@ impl EventHandler for Event {
         };
         let event = if let Some(delta) = m {
             if player.data.objects[object_index].get_modifier_index() == 0 {
-                player.data.energy -= 1;
+                if player.data.energy < object_index as u16 + 1 {
+                    player.data.energy = 0;
+                } else {
+                    player.data.energy -= (object_index + 1) as u16;
+                }
                 player.data.inc_exp();
             }
             Some(Event {

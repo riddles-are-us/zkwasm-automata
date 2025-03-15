@@ -359,7 +359,7 @@ impl Transaction {
             Some(_) => Err(ERROR_PLAYER_ALREADY_EXIST),
             None => {
                 let mut player = AutomataPlayer::new_from_pid(*pid);
-                player.data.last_interest_stamp = counter;
+                player.data.update_interest(counter);
                 player.store();
                 Ok(())
             }

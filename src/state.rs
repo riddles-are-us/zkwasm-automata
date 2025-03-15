@@ -260,10 +260,12 @@ impl CommandHandler for Withdraw {
                 player.check_and_inc_nonce(nonce);
                 let amount = self.data[0] & 0xffffffff;
                 if amount <= state.bounty_pool {
+                    let counter = STATE.0.borrow().queue.counter;
                     player.data.cost_balance(amount as i64)?;
                     let withdrawinfo =
                         WithdrawInfo::new(&[self.data[0], self.data[1], self.data[2]], 0);
                     SettlementInfo::append_settlement(withdrawinfo);
+                    player.data.update_interest(counter);
                     player.store();
                     Ok(())
                 } else {

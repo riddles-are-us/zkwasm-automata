@@ -159,7 +159,7 @@ impl CommandHandler for InstallCard {
             Some(player) => {
                 player.check_and_inc_nonce(nonce);
                 let level = player.data.level as usize;
-                if player.data.cards.len() < 4 * level + 6 {
+                if player.data.cards.len() > 4 * level + 6 {
                     Err(ERROR_NOT_ENOUGH_LEVEL)
                 } else {
                     player.data.pay_cost()?;

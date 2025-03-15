@@ -88,6 +88,7 @@ impl PlayerData {
         } else {
             self.energy += 20;
         }
+        self.inc_exp(10);
         Ok(())
     }
 
@@ -121,7 +122,6 @@ impl PlayerData {
         unsafe { zkwasm_rust_sdk::require(object.attributes[0] < 128) };
         object.attributes[0] += 1;
         object.attributes[index] += 1;
-        self.inc_exp(10);
     }
 
     pub fn inc_exp(&mut self, a: u16) {

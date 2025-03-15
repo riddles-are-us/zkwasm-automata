@@ -88,9 +88,9 @@ impl CommandHandler for InstallObject {
                 let objindex = player.data.objects.len();
                 unsafe { require(objindex == self.object_index) };
                 let level = player.data.level as usize;
-                if objindex > level + 1 {
+                if objindex > (level + 1) / 2 {
                     Err(ERROR_NOT_ENOUGH_LEVEL)
-                } else if objindex > 16 {
+                } else if objindex > 24 {
                     Err(ERROR_INDEX_OUT_OF_BOUND)
                 } else {
                     player.data.pay_cost()?;

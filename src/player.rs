@@ -143,7 +143,11 @@ impl PlayerData {
     }
 
     pub fn collect_interest(&mut self, counter: u64) -> Result <(), u32> {
-        let balance = self.last_interest_stamp >> 32;
+        let mut balance = self.last_interest_stamp >> 32;
+        let current_balance = self.get_balance();
+        if balance > current_balance {
+            balance = current_balance
+        }
         let timestamp = self.last_interest_stamp & 0xffffffff;
         let delta = counter - timestamp;
         let interest = ((self.level as u64) * balance * delta / (100000 * 20000)) as i64;

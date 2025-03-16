@@ -6,6 +6,7 @@ use crate::object::Object;
 use crate::player::AutomataPlayer;
 use crate::player::Owner;
 use std::cell::RefCell;
+use serde::Serialize;
 use zkwasm_rest_abi::StorageData;
 use zkwasm_rest_abi::WithdrawInfo;
 use zkwasm_rest_abi::MERKLE_MAP;
@@ -442,6 +443,12 @@ pub struct State {
     queue: EventQueue<Event>,
 }
 
+#[derive(Debug, Serialize)]
+struct StateObserve {
+    bounty_pool: u64,
+    counter: u64,
+}
+
 impl State {
     pub fn new() -> Self {
         State {
@@ -453,7 +460,12 @@ impl State {
     }
     pub fn snapshot() -> String {
         let counter = STATE.0.borrow().queue.counter;
-        serde_json::to_string(&counter).unwrap()
+        let bounty_pool = STATE.0.borrow().bounty_pool;
+        let state = StateObserve {
+            counter,
+            bounty_pool
+        };
+        serde_json::to_string(&state).unwrap()
     }
     pub fn get_state(pid: Vec<u64>) -> String {
         let player = AutomataPlayer::get(&pid.try_into().unwrap()).unwrap();

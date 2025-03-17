@@ -221,7 +221,10 @@ impl PlayerData {
         }
         for (a, b) in self.local.0.iter_mut().zip(m.iter()) {
             if *b < 0 {
-                *a += *b + reduce;
+                let g = *b + reduce;
+                if g < 0 {
+                    *a += *b + reduce;
+                }
             } else if *b > 0 {
                 *a += *b + ((productivity + 1).ilog2() as i64);
             }

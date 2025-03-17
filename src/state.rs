@@ -227,7 +227,8 @@ impl CommandHandler for Deposit {
         let mut admin = AutomataPlayer::get_from_pid(pid).unwrap();
         admin.check_and_inc_nonce(nonce);
         let mut player = AutomataPlayer::get_from_pid(&[self.data[0], self.data[1]]);
-        let counter = STATE.0.borrow().queue.counter;
+        let mut state = STATE.0.borrow_mut();
+        let counter = state.queue.counter;
         match player.as_mut() {
             None => {
                 let mut player = AutomataPlayer::new_from_pid([self.data[0], self.data[1]]);
@@ -241,6 +242,7 @@ impl CommandHandler for Deposit {
                 player.store();
             }
         };
+        state.bounty_pool += self.data[2];
         admin.store();
         Ok(()) // no error occurred
     }

@@ -36,8 +36,8 @@ impl StorageData for Card {
 lazy_static::lazy_static! {
     pub static ref DEFAULT_CARDS: Vec<Card> = vec![
         Card::new(40, [-10, -10, 20, 0, 0, 0, 0, 0]),
-        Card::new(60, [30, 0, -10, 0, 0, 0, 0, 0]),
-        Card::new(70, [0, 30, -10, 0, 0, 0, 0, 0]),
+        Card::new(60, [15, 0, -10, 0, 0, 0, 0, 0]),
+        Card::new(70, [0, 15, -10, 0, 0, 0, 0, 0]),
         Card::new(65, [10, 0, -30, 0, 20, 0, 0, 0]),
     ];
     pub static ref CARD_NAME: Vec<&'static str> = vec![

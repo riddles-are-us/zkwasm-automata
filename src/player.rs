@@ -150,7 +150,7 @@ impl PlayerData {
         }
         let timestamp = self.last_interest_stamp & 0xffffffff;
         let delta = counter - timestamp;
-        let interest = ((self.level as u64) * balance * delta / (100000 * 17280)) as i64;
+        let interest = ((self.level as u64) * balance * delta / (10000 * 17280)) as i64;
         self.last_interest_stamp = (self.get_balance() << 32) + counter;
         self.cost_balance(100 - interest)
     }

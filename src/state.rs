@@ -414,8 +414,8 @@ impl Transaction {
             Command::InstallCard(cmd) => cmd.handle(&AutomataPlayer::pkey_to_pid(pkey), self.nonce, rand)
                 .map_or_else(|e| e, |_| 0),
             Command::Deposit(cmd) => {
-                //zkwasm_rust_sdk::dbg!("perform deposit: {:?} {:?}\n", {*pkey}, {*ADMIN_PUBKEY});
                 unsafe { require(*pkey == *ADMIN_PUBKEY) };
+                zkwasm_rust_sdk::dbg!("perform deposit done\n");
                 cmd.handle(&AutomataPlayer::pkey_to_pid(pkey), self.nonce, rand)
                     .map_or_else(|e| e, |_| 0)
             },

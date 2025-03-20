@@ -27,7 +27,7 @@ async function main() {
   await admin.installPlayer();
 
   console.log("deposit ...\n", pkeyArray[1], pkeyArray[2], admin.processingKey);
-  await admin.deposit(0n, pkeyArray[1], pkeyArray[2], 10n);
+  await admin.deposit(pkeyArray[1], pkeyArray[2], 0n, 10n);
 
   /*
   console.log("install object ...\n");

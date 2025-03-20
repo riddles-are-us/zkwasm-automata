@@ -4,7 +4,7 @@ RUNNING_DIR=./ts/node_modules/zkwasm-ts-server
 default: build
 
 ./src/admin.prikey: ./ts/node_modules/zkwasm-ts-server/src/init_admin.js
-	node ./ts/node_modules/zkwasm-ts-server/src/init_admin.js ./src/admin.prikey
+	node ./ts/node_modules/zkwasm-ts-server/src/init_admin.js ./src/admin.pubkey
 
 ./ts/src/service.js:
 	cd ./ts && npx tsc && cd -

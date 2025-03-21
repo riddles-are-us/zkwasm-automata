@@ -4,7 +4,7 @@ const service = new Service(async ()=>{return;});
 
 async function main() {
   await service.initialize();
-  service.serve();
+  await service.serve();
 }
 
 main();

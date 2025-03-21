@@ -457,7 +457,7 @@ impl State {
         State {
             supplier: 1000,
             start_time_stamp: 0,
-            bounty_pool: 10000000,
+            bounty_pool: 20000000,
             queue: EventQueue::new(),
         }
     }

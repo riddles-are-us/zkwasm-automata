@@ -424,7 +424,12 @@ impl Transaction {
 
             Command::Tick => {
                 unsafe { require(*pkey == *ADMIN_PUBKEY) };
-                STATE.0.borrow_mut().queue.tick();
+                zkwasm_rust_sdk::dbg!("perform borrow ....\n");
+                let mut state = STATE.0.borrow_mut();
+                zkwasm_rust_sdk::dbg!("perform borrow done.n");
+                state.queue.tick();
+                zkwasm_rust_sdk::dbg!("tick done. n");
+                //STATE.0.borrow_mut().queue.tick();
                 0
             }
         };

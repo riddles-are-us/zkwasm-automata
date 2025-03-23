@@ -12,7 +12,7 @@ default: build
 
 build: ./src/admin.pubkey ./ts/src/service.js
 	wasm-pack build --release --out-name application --out-dir pkg
-	wasm-opt -Oz -o $(INSTALL_DIR)/application_bg.wasm pkg/application_bg.wasm
+	wasm-opt -Oz -g -o $(INSTALL_DIR)/application_bg.wasm pkg/application_bg.wasm
 	cp pkg/application_bg.wasm $(INSTALL_DIR)/application_bg.wasm
 	cp pkg/application_bg.wasm.d.ts $(INSTALL_DIR)/application_bg.wasm.d.ts
 	cd $(RUNNING_DIR) && npx tsc && cd -

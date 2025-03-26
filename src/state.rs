@@ -256,11 +256,11 @@ pub struct Withdraw {
 impl CommandHandler for Withdraw {
     fn handle(&self, pid: &[u64; 2], nonce: u64, _rand: &[u64; 4]) -> Result<(), u32> {
         let mut player = AutomataPlayer::get_from_pid(pid);
-        let mut state = STATE.0.borrow_mut();
         match player.as_mut() {
             None => Err(ERROR_PLAYER_NOT_EXIST),
             Some(player) => {
                 player.check_and_inc_nonce(nonce);
+                let mut state = STATE.0.borrow_mut();
                 let amount = self.data[0] & 0xffffffff;
                 if amount <= state.bounty_pool {
                     let counter = state.queue.counter;

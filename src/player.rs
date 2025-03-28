@@ -8,6 +8,7 @@ use crate::StorageData;
 use crate::MERKLE_MAP;
 use serde::Serialize;
 use std::slice::IterMut;
+use zkwasm_rest_abi::enforce;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Attributes(pub Vec<i64>);
@@ -119,7 +120,7 @@ impl PlayerData {
 
     pub fn upgrade_object(&mut self, object_index: usize, index: usize) {
         let object = self.objects.get_mut(object_index).unwrap();
-        unsafe { zkwasm_rust_sdk::require(object.attributes[0] < 128) };
+        enforce(object.attributes[0] < 128, "check attributes bound");
         object.attributes[0] += 1;
         object.attributes[index] += 1;
     }

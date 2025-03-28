@@ -41,7 +41,6 @@ impl EventHandler for Event {
         let owner_id = self.owner;
         let object_index = self.object_index;
         let mut player = AutomataPlayer::get_from_pid(&owner_id).unwrap();
-        zkwasm_rust_sdk::dbg!("handle start ...\n");
         let m = if player.data.energy == 0 {
             player.data.objects.get_mut(object_index).unwrap().halt();
             None
@@ -65,7 +64,6 @@ impl EventHandler for Event {
         } else {
             None
         };
-        zkwasm_rust_sdk::dbg!("handle end ...\n");
         player.store();
         zkwasm_rust_sdk::dbg!("store end...\n");
         event

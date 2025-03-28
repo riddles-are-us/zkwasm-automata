@@ -72,8 +72,8 @@ impl PlayerData {
         self.cards.push(new_card)
     }
 
-    pub fn pay_cost(&mut self) -> Result<(), u32> {
-        self.cost_balance(self.current_cost as i64)?;
+    pub fn pay_cost(&mut self, base: u64) -> Result<(), u32> {
+        self.cost_balance(self.current_cost as i64 + base as i64)?;
         self.cost_info -= 1;
         if self.cost_info == 0 {
             self.cost_info = COST_INCREASE_ROUND;

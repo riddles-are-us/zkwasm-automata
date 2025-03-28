@@ -64,7 +64,7 @@ impl CommandHandler for UpgradeObject {
             None => Err(ERROR_PLAYER_ALREADY_EXIST),
             Some(player) => {
                 player.check_and_inc_nonce(nonce);
-                player.data.pay_cost()?;
+                player.data.pay_cost(0)?;
                 player.data.upgrade_object(self.object_index, self.feature_index);
                 player.store();
                 Ok(())
@@ -94,7 +94,7 @@ impl CommandHandler for InstallObject {
                 } else if objindex > 24 {
                     Err(ERROR_INDEX_OUT_OF_BOUND)
                 } else {
-                    player.data.pay_cost()?;
+                    player.data.pay_cost(1000)?;
                     let cards = self.modifiers;
                     let mut object = Object::new(cards);
                     let counter = STATE.0.borrow().queue.counter;
@@ -127,7 +127,7 @@ impl CommandHandler for RestartObject {
             None => Err(ERROR_PLAYER_ALREADY_EXIST),
             Some(player) => {
                 player.check_and_inc_nonce(nonce);
-                player.data.pay_cost()?;
+                player.data.pay_cost(0)?;
                 let counter = STATE.0.borrow().queue.counter;
                 if let Some(delay) = player.data.restart_object_card(
                     self.object_index,
@@ -163,7 +163,7 @@ impl CommandHandler for InstallCard {
                 if player.data.cards.len() >= 4 * level + 4 {
                     Err(ERROR_NOT_ENOUGH_LEVEL)
                 } else {
-                    player.data.pay_cost()?;
+                    player.data.pay_cost(0)?;
                     player.data.generate_card(rand);
                     player.store();
                     Ok(())

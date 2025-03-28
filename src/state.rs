@@ -12,7 +12,7 @@ use zkwasm_rest_abi::WithdrawInfo;
 use zkwasm_rest_abi::MERKLE_MAP;
 use zkwasm_rest_convention::EventQueue;
 use zkwasm_rest_convention::SettlementInfo;
-use zkwasm_rust_sdk::require;
+use zkwasm_rest_abi::enforce;
 
 /*
 // Custom serializer for `[u64; 4]` as a [String; 4].
@@ -87,7 +87,7 @@ impl CommandHandler for InstallObject {
             Some(player) => {
                 player.check_and_inc_nonce(nonce);
                 let objindex = player.data.objects.len();
-                unsafe { require(objindex == self.object_index) };
+                enforce(objindex == self.object_index, "check object index");
                 let level = player.data.level as usize;
                 if objindex > (level + 1) / 2 {
                     Err(ERROR_NOT_ENOUGH_LEVEL)
@@ -204,7 +204,7 @@ impl CommandHandler for Bounty {
                         Err(ERROR_INDEX_OUT_OF_BOUND)
                     }
                 } else {
-                    unsafe {require(self.bounty_index == 7)};
+                    enforce(self.bounty_index == 7, "check bounty index");
                     let counter = STATE.0.borrow().queue.counter;
                     player.data.collect_interest(counter)?;
                     player.store();
@@ -311,7 +311,7 @@ impl Transaction {
         let cmd = params[0] & 0xff;
         let nonce = params[0] >> 16;
         let command = if cmd == WITHDRAW {
-            unsafe { require (params[1] == 0) }; // only token index 0 is supported
+            enforce(params[1] == 0, "check withdraw index"); // only token index 0 is supported
             Command::Withdraw (Withdraw {
                 data: [params[2], params[3], params[4]]
             })
@@ -327,7 +327,7 @@ impl Transaction {
             })
         } else if cmd == DEPOSIT {
             zkwasm_rust_sdk::dbg!("deposit params: {:?}\n", params);
-            unsafe { require (params[3] == 0) }; // only token index 0 is supported
+            enforce(params[3] == 0, "check deposit index"); // only token index 0 is supported
             Command::Deposit (Deposit {
                 data: [params[1], params[2], params[4]]
             })
@@ -414,8 +414,7 @@ impl Transaction {
             Command::InstallCard(cmd) => cmd.handle(&AutomataPlayer::pkey_to_pid(pkey), self.nonce, rand)
                 .map_or_else(|e| e, |_| 0),
             Command::Deposit(cmd) => {
-                unsafe { require(*pkey == *ADMIN_PUBKEY) };
-                zkwasm_rust_sdk::dbg!("perform deposit done\n");
+                enforce(*pkey == *ADMIN_PUBKEY, "check admin key of deposit");
                 cmd.handle(&AutomataPlayer::pkey_to_pid(pkey), self.nonce, rand)
                     .map_or_else(|e| e, |_| 0)
             },
@@ -423,7 +422,7 @@ impl Transaction {
                 .map_or_else(|e| e, |_| 0),
 
             Command::Tick => {
-                unsafe { require(*pkey == *ADMIN_PUBKEY) };
+                enforce(*pkey == *ADMIN_PUBKEY, "check admin key");
                 zkwasm_rust_sdk::dbg!("perform borrow ....\n");
                 let mut state = STATE.0.borrow_mut();
                 zkwasm_rust_sdk::dbg!("perform borrow done.n");

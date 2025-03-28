@@ -65,7 +65,7 @@ impl EventHandler for Event {
             None
         };
         player.store();
-        zkwasm_rust_sdk::dbg!("store end...\n");
+        //zkwasm_rust_sdk::dbg!("store end...\n");
         event
     }
 }

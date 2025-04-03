@@ -68,7 +68,7 @@ impl Attributes {
 
 impl PlayerData {
     pub fn generate_card(&mut self, rand: &[u64; 4]) {
-        let new_card = random_modifier(self.local.0.clone().try_into().unwrap(), rand[1]);
+        let new_card = random_modifier(self.level as i64, self.local.0.clone().try_into().unwrap(), rand[1]);
         self.cards.push(new_card)
     }
 

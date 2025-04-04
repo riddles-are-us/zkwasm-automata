@@ -43,22 +43,24 @@ pub fn default_local() -> [i64; LOCAL_ATTRIBUTES_SIZE] {
     [30, 30, 0, 0, 2, 0, 0, 0]
 }
 
-const LOCAL_RESOURCE_WEIGHT: [u64; LOCAL_ATTRIBUTES_SIZE] = [1, 1, 2, 4, 8, 16, 32, 128];
+const LOCAL_RESOURCE_WEIGHT: [u64; LOCAL_ATTRIBUTES_SIZE] = [1, 1, 2, 2, 4, 4, 8, 32];
 pub const COST_INCREASE_ROUND: u16 = 4;
 pub const COST_INCREASE_ROUND_INITIAL: u16 = 2;
 pub const INITIAL_ENERGY: u16 = 5;
 
 pub fn random_modifier(lvl: i64, _current_resource: [i64; LOCAL_ATTRIBUTES_SIZE], rand: u64) -> Card {
     let rand_bytes = rand.to_le_bytes().map(|x| x as u64);
+
     let output1 = rand_bytes[0] & 0x7; // select two target result
     let output2 = (rand_bytes[0] >> 4) & 0x7; // select two target result
-    let cost1 = (rand_bytes[1] & 0x3) as u64; // select two target number
-    let cost2 = ((rand_bytes[1] >> 4) & 0x3) as u64; // select two target number
+
+    let cost1 = ((rand_bytes[1] & 0x7) * (lvl as u64) / LOCAL_RESOURCE_WEIGHT[output1 as usize]) as u64; // select two target number
+    let cost2 = (((rand_bytes[1] >> 4) & 0x7) * (lvl as u64) / LOCAL_RESOURCE_WEIGHT[output2 as usize]) as u64; // select two target number
     let input1 = (rand_bytes[2] & 0x7) as usize;
     let input2 = ((rand_bytes[2] >> 4) & 0x7) as usize;
     let input3 = (rand_bytes[3] & 0x7) as usize;
     let input4 = ((rand_bytes[3] >> 4) & 0x7) as usize;
-    let mut weight = lvl * (((rand_bytes[4] & 0xf) as i64) - 0x7);
+    let mut weight = -lvl * 2  + ((rand_bytes[4] & 0xf) as i64);
 
     weight += (LOCAL_RESOURCE_WEIGHT[output1 as usize] * cost1 + LOCAL_RESOURCE_WEIGHT[output2 as usize] * cost2) as i64;
     let mut inputs = [input1, input2, input3, input4];
@@ -67,6 +69,7 @@ pub fn random_modifier(lvl: i64, _current_resource: [i64; LOCAL_ATTRIBUTES_SIZE]
     let cost = inputs.map(|x| {
         weight / ((LOCAL_RESOURCE_WEIGHT[x] * 4) as i64)
     });
+
     let mut attrs = [0i64; 8];
     attrs[inputs[0] as usize] -= cost[0];
     attrs[inputs[1] as usize] -= cost[1];
@@ -91,7 +94,7 @@ pub fn random_modifier(lvl: i64, _current_resource: [i64; LOCAL_ATTRIBUTES_SIZE]
     weight += 5;
     //zkwasm_rust_sdk::dbg!("random modifier weight {}\n", weight);
 
-    let duration = if weight < 0 { 65 - lvl } else { weight * 20 + 100 - lvl };
+    let duration = if weight < 0 { 65 - lvl } else { weight * 10 + 100 - lvl };
 
     Card {
         duration: duration as u64,

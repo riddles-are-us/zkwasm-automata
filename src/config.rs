@@ -99,6 +99,7 @@ pub fn random_modifier(lvl: i64, _current_resource: [i64; LOCAL_ATTRIBUTES_SIZE]
     Card {
         duration: duration as u64,
         attributes: attrs,
+        marketid: 0,
     }
 }
 

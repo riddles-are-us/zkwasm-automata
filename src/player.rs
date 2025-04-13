@@ -1,14 +1,19 @@
 use crate::card::{Card, DEFAULT_CARDS};
 use crate::config::{COST_INCREASE_ROUND, COST_INCREASE_ROUND_INITIAL};
 use crate::config::{default_local, random_modifier, INITIAL_ENERGY};
-use crate::error::ERROR_NOT_ENOUGH_BALANCE;
+use crate::error::*;
 use crate::object::Object;
+use crate::card::MarketCard;
 use crate::Player;
 use crate::StorageData;
 use crate::MERKLE_MAP;
 use serde::Serialize;
 use std::slice::IterMut;
 use zkwasm_rest_abi::enforce;
+use zkwasm_rest_convention::IndexedObject;
+use zkwasm_rest_convention::Wrapped;
+use zkwasm_rest_convention::BidObject;
+use zkwasm_rest_convention::WithBalance;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Attributes(pub Vec<i64>);
@@ -66,6 +71,30 @@ impl Attributes {
     }
 }
 
+impl WithBalance for PlayerData {
+    fn cost_balance(&mut self, b: u64) -> Result<(), u32> {
+        if let Some(treasure) = self.local.0.last_mut() {
+            if *treasure >= b as i64 {
+                *treasure -= b as i64;
+                Ok(())
+            } else {
+                Err(ERROR_NOT_ENOUGH_BALANCE)
+            }
+        } else {
+            unreachable!();
+        }
+    }
+
+    fn inc_balance(&mut self, b: u64) {
+        if let Some(treasure) = self.local.0.last_mut() {
+            *treasure += b as i64;
+        } else {
+            unreachable!();
+        }
+    }
+
+}
+
 impl PlayerData {
     pub fn generate_card(&mut self, rand: &[u64; 4]) {
         let new_card = random_modifier(self.level as i64, self.local.0.clone().try_into().unwrap(), rand[1]);
@@ -73,7 +102,7 @@ impl PlayerData {
     }
 
     pub fn pay_cost(&mut self, base: u64) -> Result<(), u32> {
-        self.cost_balance(self.current_cost as i64 + base as i64)?;
+        self.cost_balance(self.current_cost as u64 + base)?;
         self.cost_info -= 1;
         if self.cost_info == 0 {
             self.cost_info = COST_INCREASE_ROUND;
@@ -93,18 +122,7 @@ impl PlayerData {
         Ok(())
     }
 
-    pub fn cost_balance(&mut self, b: i64) -> Result<(), u32> {
-        if let Some(treasure) = self.local.0.last_mut() {
-            if *treasure >= b {
-                *treasure -= b;
-                Ok(())
-            } else {
-                Err(ERROR_NOT_ENOUGH_BALANCE)
-            }
-        } else {
-            unreachable!();
-        }
-    }
+
 
     fn get_balance(&self) -> u64 {
         if let Some(treasure) = self.local.0.last() {
@@ -153,7 +171,60 @@ impl PlayerData {
         let delta = counter - timestamp;
         let interest = ((self.level as u64) * balance * delta / (10000 * 17280)) as i64;
         self.last_interest_stamp = (self.get_balance() << 32) + counter;
-        self.cost_balance(100 - interest)
+
+        // TODO: cost balance needs check interest bound
+        self.cost_balance(interest as u64 - 100)
+    }
+
+    fn card_used(&self, card_index: usize) -> bool {
+        for obj in self.objects.iter() {
+            for ci in obj.cards.iter() {
+                if *ci as usize == card_index {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    pub fn list_card_in_market(&mut self, card_index: usize, marketid: u64) -> Result<MarketCard, u32> {
+        if card_index < self.cards.len() {
+            if self.card_used(card_index) {
+                Err(ERROR_CARD_IS_IN_USE)
+            } else {
+                let card = self.cards.get_mut(card_index).unwrap();
+                if card.marketid != 0 {
+                    Err(ERROR_CARD_IS_IN_USE)
+                } else {
+                    card.marketid = marketid;
+                    let market_card = MarketCard {
+                        card: card.clone(),
+                        bid: None
+                    };
+                    Ok(market_card)
+                }
+            }
+        } else {
+            Err(ERROR_INDEX_OUT_OF_BOUND)
+        }
+    }
+
+    pub fn sell_card(&mut self, card_index: usize) -> Result<Wrapped<MarketCard>, u32> {
+        if card_index < self.cards.len() {
+            let card = self.cards.get_mut(card_index).unwrap();
+            if card.marketid != 0 {
+                let mut wrapped_market_card = MarketCard::get_object(card.marketid).unwrap();
+                if let Some(b) = wrapped_market_card.data.get_bidder() {
+                    self.inc_balance(b.bidprice);
+                    wrapped_market_card.data.set_bidder(None);
+                }
+                Ok(wrapped_market_card)
+            } else {
+                Err(ERROR_INDEX_OUT_OF_BOUND)
+            }
+        } else {
+            Err(ERROR_INDEX_OUT_OF_BOUND)
+        } 
     }
 
     pub fn apply_object_card(&mut self, object_index: usize, counter: u64) -> Option<usize> {

@@ -1,3 +1,4 @@
+#![allow(static_mut_refs)]
 #![feature(linked_list_cursors)]
 use wasm_bindgen::prelude::*;
 use zkwasm_rest_abi::*;

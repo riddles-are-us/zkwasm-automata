@@ -3,6 +3,7 @@ use crate::config::CONFIG;
 use crate::error::*;
 use crate::events::Event;
 use crate::object::Object;
+use crate::card::MarketCard;
 use crate::player::AutomataPlayer;
 use crate::player::Owner;
 use std::cell::RefCell;
@@ -11,7 +12,10 @@ use zkwasm_rest_abi::StorageData;
 use zkwasm_rest_abi::WithdrawInfo;
 use zkwasm_rest_abi::MERKLE_MAP;
 use zkwasm_rest_convention::EventQueue;
+use zkwasm_rest_convention::WithBalance;
 use zkwasm_rest_convention::SettlementInfo;
+use zkwasm_rest_convention::IndexedObject;
+use zkwasm_rest_convention::BidObject;
 use zkwasm_rest_abi::enforce;
 
 /*
@@ -39,6 +43,9 @@ pub enum Command {
     InstallObject(InstallObject),
     RestartObject(RestartObject),
     InstallCard(InstallCard),
+    ListCardInMarket(ListCardInMarket),
+    SellCard(SellCard),
+    BidCard(BidCard),
     Withdraw(Withdraw),
     Deposit(Deposit),
     Bounty(Bounty),
@@ -173,6 +180,87 @@ impl CommandHandler for InstallCard {
     }
 }
 
+#[derive (Clone)]
+pub struct ListCardInMarket {
+    card_index: usize
+}
+
+impl CommandHandler for ListCardInMarket {
+    fn handle(&self, pid: &[u64; 2], nonce: u64, _rand: &[u64; 4]) -> Result<(), u32> {
+        let mut player = AutomataPlayer::get_from_pid(pid);
+        match player.as_mut() {
+            None => Err(ERROR_PLAYER_NOT_EXIST),
+            Some(player) => {
+                let mut state = STATE.0.borrow_mut();
+                player.check_and_inc_nonce(nonce);
+                let id = state.market_id;
+                let marketcard = player.data.list_card_in_market(self.card_index, id)?; 
+                player.data.pay_cost(0)?;
+                let marketcard = MarketCard::new_object(marketcard, id);
+                player.store();
+                marketcard.store();
+                state.market_id += 1;
+                Ok(())
+            }
+        }
+    }
+}
+
+
+
+#[derive (Clone)]
+pub struct SellCard {
+    card_index: usize
+}
+
+impl CommandHandler for SellCard {
+    fn handle(&self, pid: &[u64; 2], nonce: u64, _rand: &[u64; 4]) -> Result<(), u32> {
+        let mut player = AutomataPlayer::get_from_pid(pid);
+        match player.as_mut() {
+            None => Err(ERROR_PLAYER_NOT_EXIST),
+            Some(player) => {
+                player.check_and_inc_nonce(nonce);
+                let mut marketcard = player.data.sell_card(self.card_index)?; 
+                marketcard.data.card.marketid = 0;
+                marketcard.store();
+                player.data.pay_cost(0)?;
+                player.store();
+                Ok(())
+            }
+        }
+    }
+}
+
+#[derive (Clone)]
+pub struct BidCard {
+    marketindex: u64,
+    price: u64,
+}
+
+impl CommandHandler for BidCard {
+    fn handle(&self, pid: &[u64; 2], nonce: u64, _rand: &[u64; 4]) -> Result<(), u32> {
+        let mut player = AutomataPlayer::get_from_pid(pid);
+        match player.as_mut() {
+            None => Err(ERROR_PLAYER_NOT_EXIST),
+            Some(player) => {
+                player.check_and_inc_nonce(nonce);
+                let mut marketcard = MarketCard::get_object(self.marketindex).unwrap();
+                if marketcard.data.card.marketid != 0 {
+                    let prev_bidder = marketcard.data.replace_bidder(player, self.price)?;
+                    player.store();
+                    prev_bidder.map(|x| x.store());
+                    marketcard.store();
+                    Ok(())
+                } else {
+                    Err(ERROR_CARD_IS_IN_USE)
+                }
+            }
+        }
+    }
+}
+
+
+
 
 #[derive (Clone)]
 pub struct Bounty {
@@ -194,7 +282,7 @@ impl CommandHandler for Bounty {
                             player.data.local.0[self.bounty_index] = v - (cost as i64);
                             player.data.redeem_info[self.bounty_index] += 1;
                             let reward = CONFIG.get_bounty_reward(redeem_info as u64);
-                            player.data.cost_balance(-(reward as i64))?;
+                            player.data.cost_balance(reward)?;
                             player.store();
                             Ok(())
                         } else {
@@ -232,12 +320,12 @@ impl CommandHandler for Deposit {
         match player.as_mut() {
             None => {
                 let mut player = AutomataPlayer::new_from_pid([self.data[0], self.data[1]]);
-                player.data.cost_balance(-(self.data[2] as i64))?;
+                player.data.cost_balance(self.data[2])?;
                 player.data.update_interest(counter);
                 player.store();
             }
             Some(player) => {
-                player.data.cost_balance(-(self.data[2] as i64))?;
+                player.data.cost_balance(self.data[2])?;
                 player.data.update_interest(counter);
                 player.store();
             }
@@ -264,7 +352,7 @@ impl CommandHandler for Withdraw {
                 let amount = self.data[0] & 0xffffffff;
                 if amount <= state.bounty_pool {
                     let counter = state.queue.counter;
-                    player.data.cost_balance(amount as i64)?;
+                    player.data.cost_balance(amount)?;
                     let withdrawinfo =
                         WithdrawInfo::new(&[self.data[0], self.data[1], self.data[2]], 0);
                     SettlementInfo::append_settlement(withdrawinfo);
@@ -293,6 +381,9 @@ const WITHDRAW: u64 = 6;
 const DEPOSIT: u64 = 7;
 const BOUNTY: u64 = 8;
 const COLLECT_ENERGY: u64 = 9;
+const LIST_CARD_IN_MARKET: u64 = 10;
+const BID_CARD: u64 = 11;
+const SELL_CARD: u64 = 12;
 
 impl Transaction {
     pub fn decode_error(e: u32) -> &'static str {
@@ -342,6 +433,19 @@ impl Transaction {
             })
         } else if cmd == INSTALL_CARD {
             Command::InstallCard (InstallCard {})
+        } else if cmd == BID_CARD {
+            Command::BidCard (BidCard {
+                marketindex: params[1],
+                price: params[2],
+            })
+        } else if cmd == SELL_CARD {
+            Command::SellCard (SellCard {
+                card_index: params[1] as usize,
+            })
+        } else if cmd == LIST_CARD_IN_MARKET {
+            Command::ListCardInMarket (ListCardInMarket{
+                card_index: params[1] as usize,
+            })
         } else if cmd == INSTALL_PLAYER {
             Command::InstallPlayer
         } else if cmd == COLLECT_ENERGY {
@@ -413,6 +517,13 @@ impl Transaction {
                 .map_or_else(|e| e, |_| 0),
             Command::InstallCard(cmd) => cmd.handle(&AutomataPlayer::pkey_to_pid(pkey), self.nonce, rand)
                 .map_or_else(|e| e, |_| 0),
+            Command::ListCardInMarket(cmd) => cmd.handle(&AutomataPlayer::pkey_to_pid(pkey), self.nonce, rand)
+                .map_or_else(|e| e, |_| 0),
+            Command::SellCard(cmd) => cmd.handle(&AutomataPlayer::pkey_to_pid(pkey), self.nonce, rand)
+                .map_or_else(|e| e, |_| 0),
+            Command::BidCard(cmd) => cmd.handle(&AutomataPlayer::pkey_to_pid(pkey), self.nonce, rand)
+                .map_or_else(|e| e, |_| 0),
+
             Command::Deposit(cmd) => {
                 enforce(*pkey == *ADMIN_PUBKEY, "check admin key of deposit");
                 cmd.handle(&AutomataPlayer::pkey_to_pid(pkey), self.nonce, rand)
@@ -447,6 +558,7 @@ pub struct State {
     supplier: u64,
     bounty_pool: u64,
     start_time_stamp: u64,
+    market_id: u64,
     queue: EventQueue<Event>,
 }
 
@@ -462,6 +574,7 @@ impl State {
             supplier: 1000,
             start_time_stamp: 0,
             bounty_pool: 20000000,
+            market_id: 1,
             queue: EventQueue::new(),
         }
     }

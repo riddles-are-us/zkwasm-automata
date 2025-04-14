@@ -200,6 +200,8 @@ impl CommandHandler for ListCardInMarket {
                 player.store();
                 marketcard.store();
                 state.market_id += 1;
+                state.event_id += 1;
+                MarketCard::emit_event(state.event_id, &marketcard.data);
                 Ok(())
             }
         }
@@ -223,8 +225,11 @@ impl CommandHandler for SellCard {
                 let mut marketcard = player.data.sell_card(self.card_index)?; 
                 marketcard.data.card.marketid = 0;
                 marketcard.store();
+                let mut global = STATE.0.borrow_mut();
                 player.data.pay_cost(0)?;
                 player.store();
+                MarketCard::emit_event(global.event_id, &marketcard.data);
+                global.event_id += 1;
                 Ok(())
             }
         }
@@ -249,7 +254,10 @@ impl CommandHandler for BidCard {
                     let prev_bidder = marketcard.data.replace_bidder(player, self.price)?;
                     player.store();
                     prev_bidder.map(|x| x.store());
+                    let mut global = STATE.0.borrow_mut();
                     marketcard.store();
+                    MarketCard::emit_event(global.event_id, &marketcard.data);
+                    global.event_id += 1;
                     Ok(())
                 } else {
                     Err(ERROR_CARD_IS_IN_USE)
@@ -559,6 +567,7 @@ pub struct State {
     bounty_pool: u64,
     start_time_stamp: u64,
     market_id: u64,
+    event_id: u64,
     queue: EventQueue<Event>,
 }
 
@@ -575,6 +584,7 @@ impl State {
             start_time_stamp: 0,
             bounty_pool: 20000000,
             market_id: 1,
+            event_id: 1,
             queue: EventQueue::new(),
         }
     }
@@ -615,6 +625,8 @@ impl State {
         let mut v = Vec::with_capacity(state.queue.list.len() + 10);
         v.push(state.supplier);
         v.push(state.bounty_pool);
+        v.push(state.market_id);
+        v.push(state.event_id);
         state.queue.to_data(&mut v);
         let kvpair = unsafe { &mut MERKLE_MAP };
         kvpair.set(&[0, 0, 0, 0], v.as_slice());
@@ -630,6 +642,8 @@ impl State {
             let mut data = data.iter_mut();
             state.supplier = *data.next().unwrap();
             state.bounty_pool = *data.next().unwrap();
+            state.market_id = *data.next().unwrap();
+            state.event_id = *data.next().unwrap();
             state.queue = EventQueue::from_data(&mut data);
             state.start_time_stamp = state.queue.counter;
         }

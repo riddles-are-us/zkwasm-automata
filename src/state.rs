@@ -16,6 +16,7 @@ use zkwasm_rest_convention::WithBalance;
 use zkwasm_rest_convention::SettlementInfo;
 use zkwasm_rest_convention::IndexedObject;
 use zkwasm_rest_convention::BidObject;
+use zkwasm_rest_convention::clear_events;
 use zkwasm_rest_abi::enforce;
 
 /*
@@ -182,7 +183,8 @@ impl CommandHandler for InstallCard {
 
 #[derive (Clone)]
 pub struct ListCardInMarket {
-    card_index: usize
+    card_index: usize,
+    ask_price: u64,
 }
 
 impl CommandHandler for ListCardInMarket {
@@ -194,7 +196,7 @@ impl CommandHandler for ListCardInMarket {
                 let mut state = STATE.0.borrow_mut();
                 player.check_and_inc_nonce(nonce);
                 let id = state.market_id;
-                let marketcard = player.data.list_card_in_market(self.card_index, id)?; 
+                let marketcard = player.data.list_card_in_market(self.card_index, self.ask_price, id)?;
                 player.data.pay_cost(0)?;
                 let marketcard = MarketCard::new_object(marketcard, id);
                 player.store();
@@ -223,10 +225,16 @@ impl CommandHandler for SellCard {
             Some(player) => {
                 player.check_and_inc_nonce(nonce);
                 let mut marketcard = player.data.sell_card(self.card_index)?; 
+                // Shold not error from this point
+                if let Some(b) = marketcard.data.get_bidder() {
+                    let mut bidder = AutomataPlayer::get_from_pid(&b.bidder).unwrap();
+                    bidder.data.cards.push(marketcard.data.card.clone());
+                    bidder.store();
+                }
+                marketcard.data.set_bidder(None);
                 marketcard.data.card.marketid = 0;
                 marketcard.store();
                 let mut global = STATE.0.borrow_mut();
-                player.data.pay_cost(0)?;
                 player.store();
                 MarketCard::emit_event(global.event_id, &marketcard.data);
                 global.event_id += 1;
@@ -250,7 +258,18 @@ impl CommandHandler for BidCard {
             Some(player) => {
                 player.check_and_inc_nonce(nonce);
                 let mut marketcard = MarketCard::get_object(self.marketindex).unwrap();
-                if marketcard.data.card.marketid != 0 {
+                if marketcard.data.askprice <= self.price {
+                    let prev_bidder = marketcard.data.clear_bidder();
+                    player.data.inc_balance(self.price);
+                    prev_bidder.map(|x| x.store());
+                    let mut global = STATE.0.borrow_mut();
+                    player.data.cards.push(marketcard.data.card.clone());
+                    player.store();
+                    marketcard.store();
+                    MarketCard::emit_event(global.event_id, &marketcard.data);
+                    global.event_id += 1;
+                    Ok(())
+                } else if marketcard.data.card.marketid != 0 {
                     let prev_bidder = marketcard.data.replace_bidder(player, self.price)?;
                     player.store();
                     prev_bidder.map(|x| x.store());
@@ -403,6 +422,8 @@ impl Transaction {
             ERROR_NOT_ENOUGH_RESOURCE => "NotEnoughResource",
             ERROR_NOT_ENOUGH_LEVEL => "NotEnoughLevel",
             ERROR_NOT_ENOUGH_POOL => "NotEnoughFundInPool",
+            ERROR_CARD_IS_IN_USE => "CardIsInUse",
+            ERROR_BID_PRICE_INSUFFICIENT => "BidPriceInSufficient",
             _ => "Unknown",
         }
     }
@@ -453,6 +474,7 @@ impl Transaction {
         } else if cmd == LIST_CARD_IN_MARKET {
             Command::ListCardInMarket (ListCardInMarket{
                 card_index: params[1] as usize,
+                ask_price: params[2],
             })
         } else if cmd == INSTALL_PLAYER {
             Command::InstallPlayer
@@ -510,7 +532,7 @@ impl Transaction {
     }
 
     pub fn process(&self, pkey: &[u64; 4], rand: &[u64; 4]) -> Vec<u64> {
-        let b = match self.command.clone() {
+        let e = match self.command.clone() {
             Command::InstallPlayer => Self::install_player(&AutomataPlayer::pkey_to_pid(&pkey))
                 .map_or_else(|e| e, |_| 0),
             Command::InstallObject(cmd) => cmd.handle(&AutomataPlayer::pkey_to_pid(&pkey), self.nonce, rand)
@@ -551,7 +573,10 @@ impl Transaction {
                 0
             }
         };
-        vec![b as u64]
+        let event_id = STATE.0.borrow().event_id;
+        let events = clear_events(vec![e as u64, event_id]);
+        zkwasm_rust_sdk::dbg!("events: {:?}", events);
+        events
     }
 }
 

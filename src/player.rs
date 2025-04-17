@@ -187,7 +187,7 @@ impl PlayerData {
         return false;
     }
 
-    pub fn list_card_in_market(&mut self, card_index: usize, marketid: u64) -> Result<MarketCard, u32> {
+    pub fn list_card_in_market(&mut self, card_index: usize, price: u64, marketid: u64) -> Result<MarketCard, u32> {
         if card_index < self.cards.len() {
             if self.card_used(card_index) {
                 Err(ERROR_CARD_IS_IN_USE)
@@ -199,6 +199,7 @@ impl PlayerData {
                     card.marketid = marketid;
                     let market_card = MarketCard {
                         card: card.clone(),
+                        askprice: price,
                         bid: None
                     };
                     Ok(market_card)
@@ -213,10 +214,9 @@ impl PlayerData {
         if card_index < self.cards.len() {
             let card = self.cards.get_mut(card_index).unwrap();
             if card.marketid != 0 {
-                let mut wrapped_market_card = MarketCard::get_object(card.marketid).unwrap();
+                let wrapped_market_card = MarketCard::get_object(card.marketid).unwrap();
                 if let Some(b) = wrapped_market_card.data.get_bidder() {
                     self.inc_balance(b.bidprice);
-                    wrapped_market_card.data.set_bidder(None);
                 }
                 Ok(wrapped_market_card)
             } else {

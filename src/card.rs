@@ -47,20 +47,24 @@ impl StorageData for Card {
 #[derive(Clone, Serialize)]
 pub struct MarketCard {
     pub card: Card,
+    pub askprice: u64,
     pub bid: Option<BidInfo>,
 }
 
 impl StorageData for MarketCard {
     fn from_data(u64data: &mut IterMut<u64>) -> Self {
         let card = Card::from_data(u64data);
+        let askprice = *u64data.next().unwrap();
         let bid = bidinfo_from_data(u64data);
         MarketCard {
+            askprice,
             card,
             bid
         }
     }
     fn to_data(&self, data: &mut Vec<u64>) {
         self.card.to_data(data);
+        data.push(self.askprice);
         to_bidinfo_data(&self.bid, data);
     }
 }

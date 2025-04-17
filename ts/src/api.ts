@@ -16,6 +16,7 @@ const CMD_UPGRADE_OBJECT = 4n;
 const CMD_INSTALL_CARD = 5n;
 const CMD_WITHDRAW= 6n;
 const CMD_DEPOSIT = 7n;
+const CMD_LIST_CARD_IN_MARKET = 10n;
 
 export class Player extends PlayerConvention {
   constructor(key: string, rpc: ZKWasmAppRpc) {
@@ -103,5 +104,36 @@ export class Player extends PlayerConvention {
       }
       console.log("installCard error with processing key:", this.processingKey);
     }
+  }
+
+  async listCard() {
+    let nonce = await this.getNonce();
+    try {
+      let finished = await this.rpc.sendTransaction(
+        createCommand(nonce, CMD_LIST_CARD_IN_MARKET, [0n, 10n]),
+        this.processingKey
+      );
+      console.log("listCard processed at:", finished);
+    } catch(e) {
+      if(e instanceof Error) {
+        console.log(e.message);
+      }
+      console.log("installCard error with processing key:", this.processingKey);
+    }
+  }
+
+
+  async depositBalance(amount: bigint, pid_1: bigint, pid_2: bigint) {
+    let nonce = await this.getNonce();
+    try {
+      let response = await this.deposit(nonce, pid_1, pid_2, 0n, amount);
+      console.log("deposit done:", response);
+    } catch(e) {
+      if(e instanceof Error) {
+        console.log(e.message);
+      }
+      console.log("deposit error with processing key:", this.processingKey);
+    }
+
   }
 }

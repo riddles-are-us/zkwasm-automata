@@ -8,6 +8,7 @@ interface Card {
   duration: number;
   attributes: number[];
   marketid: number;
+  askprice: number;
   bidder: Bidder | null;
 }
 
@@ -22,7 +23,8 @@ function toLEBytes(num: bigint): number[] {
   return bytes;
 }
 
-function fromData(u64data: bigint[]): Card {
+function fromData(u64datasource: bigint[]): Card {
+  const u64data = u64datasource.slice();
   // Ensure there are at least three elements.
   if (u64data.length < 3) {
     throw new Error("Not enough data to construct a Card");
@@ -32,6 +34,7 @@ function fromData(u64data: bigint[]): Card {
   const duration: bigint = u64data.shift()!;
   const valueForAttributes: bigint = u64data.shift()!;
   const marketid: bigint = u64data.shift()!;
+  const askprice: bigint = u64data.shift()!;
 
   // Convert the second value into its 8 little-endian bytes.
   const leBytes = toLEBytes(valueForAttributes);
@@ -54,6 +57,7 @@ function fromData(u64data: bigint[]): Card {
     duration: Number(duration),
     attributes,
     marketid: Number(marketid),
+    askprice: Number(askprice),
     bidder: bidder,
   };
 }
@@ -85,6 +89,7 @@ export class IndexedObject {
     }
 
     toObject(): { index: number, data: bigint[], bidder: string[] | null} {
+        console.log("toObject", this.data);
         const obj = fromData(this.data);
         let bidder = null;
         if (obj.bidder) {

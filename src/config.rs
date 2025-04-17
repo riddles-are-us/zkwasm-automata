@@ -118,7 +118,7 @@ impl Config {
         serde_json::to_string(&CONFIG.clone()).unwrap()
     }
     pub fn autotick() -> bool {
-        true
+        false
     }
 
     pub fn get_bounty_cost(&self, redeem_info: u64) -> u64 {

@@ -60,11 +60,7 @@ async function batchedCallback(arg: TxWitness[], _preMerkle: string, postMerkle:
 }
 
 async function eventCallback(arg: TxWitness, data: BigUint64Array) {
-    let pass = await txStateManager.insertTxIntoCommit(arg);
-    if (pass) { // already tracked event
-        return;
-    }
-
+    console.log("event call back...");
     if(data.length == 0) {
         return;
     }
@@ -91,9 +87,14 @@ async function eventCallback(arg: TxWitness, data: BigUint64Array) {
             console.log("failed to save event");
             throw new Error("save event to db failed");
         }
-    } catch(e) {
-        console.log(e);
-        console.log("event ignored");
+    } catch(e: any) {
+        if (e.code == 11000) {
+            console.log("event already tracked");
+            //return;
+        } else {
+            console.error("store event error", e);
+            throw e
+        }
     }
     let i = 2; // start pos
     while(i < data.length) {
@@ -111,6 +112,7 @@ async function eventCallback(arg: TxWitness, data: BigUint64Array) {
                 {
                 console.log("indexed object event:");
                 let obj = IndexedObject.fromEvent(eventData);
+                console.log(obj);
                 let doc = await IndexedObjectModel.findOneAndUpdate({index: obj.index}, obj.toObject(), {upsert: true});
                 console.log("indexed object", doc);
             }

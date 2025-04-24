@@ -195,6 +195,7 @@ impl CommandHandler for Bounty {
                             player.data.redeem_info[self.bounty_index] += 1;
                             let reward = CONFIG.get_bounty_reward(redeem_info as u64);
                             player.data.cost_balance(-(reward as i64))?;
+                            player.data.inc_exp(5);
                             player.store();
                             Ok(())
                         } else {

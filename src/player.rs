@@ -89,7 +89,7 @@ impl PlayerData {
         } else {
             self.energy += 20;
         }
-        self.inc_exp(10);
+        self.inc_exp((self.current_cost + 1).ilog2() as u16);
         Ok(())
     }
 
@@ -135,9 +135,13 @@ impl PlayerData {
 
     pub fn collect_energy(&mut self, counter: u64) -> Result <(), u32> {
         let delta = counter - (self.last_check_point as u64);
-        let energe = delta * (self.level as u64);
-        if energe > 1000 {
-            self.energy += 10;
+        if delta > 1000 {
+            let energy = (self.energy as u32) + ((self.get_balance() / 10000) + 1).ilog2() * (self.level as u32);
+            if energy > 0xffff {
+                self.energy = 0xffff
+            } else {
+                self.energy = energy as u16
+            }
         }
         self.last_check_point = counter as u32;
         self.cost_balance(1)

@@ -91,10 +91,10 @@ pub fn random_modifier(lvl: i64, _current_resource: [i64; LOCAL_ATTRIBUTES_SIZE]
     for i in 0..LOCAL_ATTRIBUTES_SIZE {
         weight = weight + (attrs[i] as i64) * (LOCAL_RESOURCE_WEIGHT[i] as i64)
     }
-    weight += 16;
+    weight += 8;
     //zkwasm_rust_sdk::dbg!("random modifier weight {}\n", weight);
 
-    let duration = if weight < 0 { 65 - lvl } else { weight * 10 + 100 - lvl };
+    let duration = if weight < 0 { 75 - lvl } else { weight * 10 + 90 - lvl };
 
     Card {
         duration: duration as u64,

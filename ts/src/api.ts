@@ -17,6 +17,8 @@ const CMD_INSTALL_CARD = 5n;
 const CMD_WITHDRAW= 6n;
 const CMD_DEPOSIT = 7n;
 const CMD_LIST_CARD_IN_MARKET = 10n;
+const CMD_BID_CARD = 11n;
+const CMD_SELL_CARD = 12n;
 
 export class Player extends PlayerConvention {
   constructor(key: string, rpc: ZKWasmAppRpc) {
@@ -106,11 +108,11 @@ export class Player extends PlayerConvention {
     }
   }
 
-  async listCard() {
+  async listCard(slotIndex: bigint, askprice: bigint) {
     let nonce = await this.getNonce();
     try {
       let finished = await this.rpc.sendTransaction(
-        createCommand(nonce, CMD_LIST_CARD_IN_MARKET, [0n, 10n]),
+        createCommand(nonce, CMD_LIST_CARD_IN_MARKET, [slotIndex, askprice]),
         this.processingKey
       );
       console.log("listCard processed at:", finished);
@@ -121,6 +123,40 @@ export class Player extends PlayerConvention {
       console.log("installCard error with processing key:", this.processingKey);
     }
   }
+
+  async sellCard(slotIndex: bigint) {
+    let nonce = await this.getNonce();
+    try {
+      let finished = await this.rpc.sendTransaction(
+        createCommand(nonce, CMD_SELL_CARD, [slotIndex]),
+        this.processingKey
+      );
+      console.log("listCard processed at:", finished);
+    } catch(e) {
+      if(e instanceof Error) {
+        console.log(e.message);
+      }
+      console.log("installCard error with processing key:", this.processingKey);
+    }
+  }
+
+
+  async bidCard(index: bigint, price: bigint) {
+    let nonce = await this.getNonce();
+    try {
+      let finished = await this.rpc.sendTransaction(
+        createCommand(nonce, CMD_BID_CARD, [index, price]),
+        this.processingKey
+      );
+      console.log("listCard processed at:", finished);
+    } catch(e) {
+      if(e instanceof Error) {
+        console.log(e.message);
+      }
+      console.log("installCard error with processing key:", this.processingKey);
+    }
+  }
+
 
 
   async depositBalance(amount: bigint, pid_1: bigint, pid_2: bigint) {

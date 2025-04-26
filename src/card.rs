@@ -6,9 +6,9 @@ use crate::error::*;
 use zkwasm_rest_abi::StorageData;
 use zkwasm_rest_convention::BidInfo;
 use zkwasm_rest_convention::IndexedObject;
-use zkwasm_rest_convention::to_bidinfo_data;
-use zkwasm_rest_convention::bidinfo_from_data;
+use zkwasm_rest_convention::MarketInfo;
 use zkwasm_rest_convention::BidObject;
+use std::marker::PhantomData;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Card {
@@ -44,32 +44,6 @@ impl StorageData for Card {
     }
 }
 
-#[derive(Clone, Serialize)]
-pub struct MarketCard {
-    pub card: Card,
-    pub askprice: u64,
-    pub bid: Option<BidInfo>,
-}
-
-impl StorageData for MarketCard {
-    fn from_data(u64data: &mut IterMut<u64>) -> Self {
-        let card = Card::from_data(u64data);
-        let askprice = *u64data.next().unwrap();
-        let bid = bidinfo_from_data(u64data);
-        MarketCard {
-            askprice,
-            card,
-            bid
-        }
-    }
-    fn to_data(&self, data: &mut Vec<u64>) {
-        self.card.to_data(data);
-        data.push(self.askprice);
-        to_bidinfo_data(&self.bid, data);
-    }
-}
-
-
 lazy_static::lazy_static! {
     pub static ref DEFAULT_CARDS: Vec<Card> = vec![
         Card::new(40, [-10, -10, 20, 0, 0, 0, 0, 0]),
@@ -85,7 +59,7 @@ lazy_static::lazy_static! {
     ];
 }
 
-impl BidObject<PlayerData> for MarketCard {
+impl BidObject<PlayerData> for MarketInfo<Card, PlayerData> {
     const INSUFF:u32 = ERROR_BID_PRICE_INSUFFICIENT;
     fn get_bidder(&self) -> Option<BidInfo> {
         self.bid
@@ -93,6 +67,30 @@ impl BidObject<PlayerData> for MarketCard {
 
     fn set_bidder(&mut self, bidder: Option<BidInfo>) {
         self.bid = bidder;
+    }
+}
+
+pub struct MarketCard (pub MarketInfo<Card, PlayerData>);
+
+impl MarketCard {
+    pub fn new(marketid: u64, askprice: u64, settleinfo: u64, bid: Option<BidInfo>, object: Card) -> Self {
+        MarketCard (MarketInfo {
+            marketid,
+            askprice,
+            settleinfo,
+            bid,
+            object,
+            user: PhantomData
+        })
+    }
+}
+
+impl StorageData for MarketCard {
+    fn from_data(u64data: &mut IterMut<u64>) -> Self {
+        MarketCard (MarketInfo::<Card, PlayerData>::from_data(u64data))
+    }
+    fn to_data(&self, data: &mut Vec<u64>) {
+        self.0.to_data(data)
     }
 }
 

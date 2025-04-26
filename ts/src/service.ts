@@ -113,7 +113,7 @@ async function eventCallback(arg: TxWitness, data: BigUint64Array) {
                 console.log("indexed object event:");
                 let obj = IndexedObject.fromEvent(eventData);
                 console.log(obj);
-                let doc = await IndexedObjectModel.findOneAndUpdate({index: obj.index}, obj.toObject(), {upsert: true});
+                let doc = await IndexedObjectModel.findOneAndUpdate({marketid: obj.marketid}, obj.toObject(), {upsert: true});
                 console.log("indexed object", doc);
             }
             break;

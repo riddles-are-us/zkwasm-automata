@@ -3,15 +3,18 @@ use crate::config::CONFIG;
 use crate::error::*;
 use crate::events::Event;
 use crate::object::Object;
-use crate::card::MarketCard;
 use crate::player::AutomataPlayer;
 use crate::player::Owner;
+use crate::card::Card;
+use crate::card::MarketCard;
 use std::cell::RefCell;
 use serde::Serialize;
 use zkwasm_rest_abi::StorageData;
 use zkwasm_rest_abi::WithdrawInfo;
 use zkwasm_rest_abi::MERKLE_MAP;
 use zkwasm_rest_convention::EventQueue;
+use crate::player::PlayerData;
+use zkwasm_rest_convention::MarketInfo;
 use zkwasm_rest_convention::WithBalance;
 use zkwasm_rest_convention::SettlementInfo;
 use zkwasm_rest_convention::IndexedObject;
@@ -226,13 +229,13 @@ impl CommandHandler for SellCard {
                 player.check_and_inc_nonce(nonce);
                 let mut marketcard = player.data.sell_card(self.card_index)?; 
                 // Shold not error from this point
-                if let Some(b) = marketcard.data.get_bidder() {
+                if let Some(b) = marketcard.data.0.get_bidder() {
                     let mut bidder = AutomataPlayer::get_from_pid(&b.bidder).unwrap();
-                    bidder.data.cards.push(marketcard.data.card.clone());
+                    bidder.data.cards.push(marketcard.data.0.object.clone());
                     bidder.store();
                 }
-                marketcard.data.set_bidder(None);
-                marketcard.data.card.marketid = 0;
+                //marketcard.data.0.set_bidder(None);
+                marketcard.data.0.settleinfo = 2;
                 marketcard.store();
                 let mut global = STATE.0.borrow_mut();
                 player.store();
@@ -258,22 +261,23 @@ impl CommandHandler for BidCard {
             Some(player) => {
                 player.check_and_inc_nonce(nonce);
                 let mut marketcard = MarketCard::get_object(self.marketindex).unwrap();
-                if marketcard.data.askprice <= self.price {
-                    let prev_bidder = marketcard.data.clear_bidder();
-                    player.data.inc_balance(self.price);
+                if marketcard.data.0.askprice <= self.price { // direct get the card
+                    marketcard.data.0.settleinfo = 2;
+                    let prev_bidder = marketcard.data.0.replace_bidder(player, self.price)?;
                     prev_bidder.map(|x| x.store());
                     let mut global = STATE.0.borrow_mut();
-                    player.data.cards.push(marketcard.data.card.clone());
+                    player.data.cards.push(marketcard.data.0.object.clone());
                     player.store();
                     marketcard.store();
                     MarketCard::emit_event(global.event_id, &marketcard.data);
                     global.event_id += 1;
                     Ok(())
-                } else if marketcard.data.card.marketid != 0 {
-                    let prev_bidder = marketcard.data.replace_bidder(player, self.price)?;
+                } else if marketcard.data.0.object.marketid != 0 {
+                    let prev_bidder = marketcard.data.0.replace_bidder(player, self.price)?;
                     player.store();
                     prev_bidder.map(|x| x.store());
                     let mut global = STATE.0.borrow_mut();
+                    marketcard.data.0.settleinfo = 1;
                     marketcard.store();
                     MarketCard::emit_event(global.event_id, &marketcard.data);
                     global.event_id += 1;
@@ -309,7 +313,7 @@ impl CommandHandler for Bounty {
                             player.data.local.0[self.bounty_index] = v - (cost as i64);
                             player.data.redeem_info[self.bounty_index] += 1;
                             let reward = CONFIG.get_bounty_reward(redeem_info as u64);
-                            player.data.cost_balance(reward)?;
+                            player.data.inc_balance(reward);
                             player.store();
                             Ok(())
                         } else {
@@ -409,7 +413,7 @@ const DEPOSIT: u64 = 7;
 const BOUNTY: u64 = 8;
 const COLLECT_ENERGY: u64 = 9;
 const LIST_CARD_IN_MARKET: u64 = 10;
-const BID_CARD: u64 = 11;
+const BID_CARD: u64 = 11; // index, price
 const SELL_CARD: u64 = 12;
 
 impl Transaction {

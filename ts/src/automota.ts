@@ -8,6 +8,8 @@ const rpc = new ZKWasmAppRpc("http://127.0.0.1:3000");
 
 let account = "1234";
 let player = new Player(account, rpc);
+let bidderAccount = "1235";
+let bidder = new Player(bidderAccount, rpc);
 
 let admin = new Player(process.env.SERVER_ADMIN_KEY!, rpc);
 
@@ -22,6 +24,9 @@ async function main() {
 
   console.log("install player ...\n");
   await player.installPlayer();
+
+  console.log("install player ...\n");
+  await bidder.installPlayer();
 
   console.log("install admin ...\n");
   await admin.installPlayer();
@@ -40,10 +45,36 @@ async function main() {
   await player.installCard();
 
   console.log("list card...\n");
-  await player.listCard();
+  await player.listCard(0n, 10n);
 
-  const markets = await player.rpc.queryData("markets");
+  let markets = await player.rpc.queryData("markets");
   console.log("query markets ...", markets);
+
+  console.log("list card...\n");
+  await bidder.bidCard(1n, 8n);
+
+  markets = await player.rpc.queryData("markets");
+  console.log("query markets ...", markets);
+
+  console.log("sell card...\n");
+  await player.sellCard(0n);
+
+  markets = await player.rpc.queryData("markets");
+  console.log("query markets ...", markets);
+
+  console.log("sell card...\n");
+  await player.sellCard(0n);
+
+  markets = await player.rpc.queryData("markets");
+  console.log("query markets ...", markets);
+
+  console.log("sell card...\n");
+  await player.sellCard(0n);
+
+  markets = await player.rpc.queryData("markets");
+  console.log("query markets ...", markets);
+
+
 
 /*
   console.log("restart object ...\n");

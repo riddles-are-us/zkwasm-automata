@@ -40,7 +40,7 @@ pub fn default_entities(index: usize) -> [i64; ENTITY_ATTRIBUTES_SIZE] {
 }
 
 pub fn default_local() -> [i64; LOCAL_ATTRIBUTES_SIZE] {
-    [30, 30, 0, 0, 2, 0, 0, 0]
+    [30, 30, 0, 0, 2, 0, 0, 1000]
 }
 
 const LOCAL_RESOURCE_WEIGHT: [u64; LOCAL_ATTRIBUTES_SIZE] = [1, 1, 2, 2, 4, 4, 8, 32];

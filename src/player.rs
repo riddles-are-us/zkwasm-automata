@@ -3,7 +3,6 @@ use crate::config::{COST_INCREASE_ROUND, COST_INCREASE_ROUND_INITIAL};
 use crate::config::{default_local, random_modifier, INITIAL_ENERGY};
 use crate::error::*;
 use crate::object::Object;
-use crate::card::MarketCard;
 use crate::Player;
 use crate::StorageData;
 use crate::MERKLE_MAP;
@@ -14,6 +13,7 @@ use zkwasm_rest_convention::IndexedObject;
 use zkwasm_rest_convention::Wrapped;
 use zkwasm_rest_convention::BidObject;
 use zkwasm_rest_convention::WithBalance;
+use crate::card::MarketCard;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Attributes(pub Vec<i64>);
@@ -197,11 +197,13 @@ impl PlayerData {
                     Err(ERROR_CARD_IS_IN_USE)
                 } else {
                     card.marketid = marketid;
-                    let market_card = MarketCard {
-                        card: card.clone(),
-                        askprice: price,
-                        bid: None
-                    };
+                    let market_card = MarketCard::new(
+                        marketid,
+                        price,
+                        0,
+                        None,
+                        card.clone(),
+                    );
                     Ok(market_card)
                 }
             }
@@ -213,9 +215,11 @@ impl PlayerData {
     pub fn sell_card(&mut self, card_index: usize) -> Result<Wrapped<MarketCard>, u32> {
         if card_index < self.cards.len() {
             let card = self.cards.get_mut(card_index).unwrap();
-            if card.marketid != 0 {
-                let wrapped_market_card = MarketCard::get_object(card.marketid).unwrap();
-                if let Some(b) = wrapped_market_card.data.get_bidder() {
+            let marketid = card.marketid;
+            card.marketid = 0;
+            if marketid != 0 {
+                let wrapped_market_card = MarketCard::get_object(marketid).unwrap();
+                if let Some(b) = wrapped_market_card.data.0.get_bidder() {
                     self.inc_balance(b.bidprice);
                 }
                 Ok(wrapped_market_card)

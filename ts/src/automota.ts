@@ -62,6 +62,7 @@ async function main() {
   markets = await player.rpc.queryData("markets");
   console.log("query markets ...", markets);
 
+  /*
   console.log("sell card...\n");
   await player.sellCard(0n);
 

@@ -221,8 +221,10 @@ impl PlayerData {
                 let wrapped_market_card = MarketCard::get_object(marketid).unwrap();
                 if let Some(b) = wrapped_market_card.data.0.get_bidder() {
                     self.inc_balance(b.bidprice);
+                    Ok(wrapped_market_card)
+                } else {
+                    Err(ERROR_CARD_IS_IN_USE)
                 }
-                Ok(wrapped_market_card)
             } else {
                 Err(ERROR_INDEX_OUT_OF_BOUND)
             }

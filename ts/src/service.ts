@@ -4,8 +4,11 @@ import { Express } from "express";
 //import {clearTxFromCommit, CommitModel, getTxFromCommit, insertTxIntoCommit} from "./commits.js";
 import {merkleRootToBeHexString} from "zkwasm-ts-server/src/lib.js";
 
-const service = new Service(eventCallback, batchedCallback, extra);
+const playerIndexer = (player: any) => player.data.level;
+
+const service = new Service(eventCallback, batchedCallback, extra, playerIndexer);
 await service.initialize();
+
 
 let txStateManager = new TxStateManager(merkleRootToBeHexString(service.merkleRoot));
 
@@ -37,7 +40,6 @@ function extra (app: Express) {
               const jdoc = IndexedObject.fromMongooseDoc(d);
               return jdoc.toJSON();
           });
-          console.log(jdoc);
           res.status(201).send({
               success: true,
               data: jdoc,
@@ -60,7 +62,6 @@ async function batchedCallback(arg: TxWitness[], _preMerkle: string, postMerkle:
 }
 
 async function eventCallback(arg: TxWitness, data: BigUint64Array) {
-    console.log("event call back...");
     if(data.length == 0) {
         return;
     }
@@ -110,11 +111,8 @@ async function eventCallback(arg: TxWitness, data: BigUint64Array) {
             break;
             case EVENT_CARD_UPDATE:
                 {
-                console.log("indexed object event:");
                 let obj = IndexedObject.fromEvent(eventData);
-                console.log(obj);
-                let doc = await IndexedObjectModel.findOneAndUpdate({marketid: obj.marketid}, obj.toObject(), {upsert: true});
-                console.log("indexed object", doc);
+                await IndexedObjectModel.findOneAndUpdate({marketid: obj.marketid}, obj.toObject(), {upsert: true});
             }
             break;
             default:

@@ -18,7 +18,7 @@ function extra (app: Express) {
           let pid1 = req.params.pid1;
           let pid2 = req.params.pid2;
           let doc = await IndexedObjectModel.find(
-              {bidder: [pid1, pid2]},
+              {"bidder.bidder": [BigInt(pid1), BigInt(pid2)]},
           );
           let data = doc.map((d) => {
               return IndexedObject.fromMongooseDoc(d).toJSON()

@@ -91,10 +91,10 @@ pub fn random_modifier(lvl: i64, _current_resource: [i64; LOCAL_ATTRIBUTES_SIZE]
     for i in 0..LOCAL_ATTRIBUTES_SIZE {
         weight = weight + (attrs[i] as i64) * (LOCAL_RESOURCE_WEIGHT[i] as i64)
     }
-    weight += 5;
+    weight += 8;
     //zkwasm_rust_sdk::dbg!("random modifier weight {}\n", weight);
 
-    let duration = if weight < 0 { 65 - lvl } else { weight * 10 + 100 - lvl };
+    let duration = if weight < 0 { 75 - lvl } else { weight * 10 + 90 - lvl };
 
     Card {
         duration: duration as u64,
@@ -105,7 +105,7 @@ pub fn random_modifier(lvl: i64, _current_resource: [i64; LOCAL_ATTRIBUTES_SIZE]
 
 lazy_static::lazy_static! {
     pub static ref CONFIG: Config = Config {
-        version: "1.3",
+        version: "1.5",
         bounty_cost_base : 2,
         bounty_reward_base: 4,
         entity_attributes: ["Level", "Speed", "Efficiency", "Producitivity"],

@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { Decodable, Bidder, fromData, MarketInfo, marketObjectSchema } from './market.js';
+import { Market } from 'zkwasm-ts-server';
 
 (BigInt.prototype as any).toJSON = function () {
       return this.toString();
@@ -10,7 +10,7 @@ interface Card {
   attributes: bigint;
 }
 
-class CardDecoder implements Decodable<Card> {
+class CardDecoder implements Market.Decodable<Card> {
   constructor() {
   }
   fromData(u64data: bigint[]): Card {
@@ -23,48 +23,35 @@ class CardDecoder implements Decodable<Card> {
   }
 }
 
+export function docToJSON(doc: mongoose.Document) {
+    console.log("doc...", doc);
+    const obj = doc.toObject({
+        transform: (_, ret:any) => {
+            delete ret._id;
+            return ret;
+        }
+    });
+    return obj;
+}
+
+
+
 export class IndexedObject {
     // token idx
-    marketid: bigint;
-    askprice: bigint;
-    settleinfo: bigint;
-    bidder: Bidder | null;
-    object: Card;
+    index: number;
+    // 40-character hexadecimal Ethereum address
+    data: bigint[];
 
-    constructor(m: MarketInfo<Card>) {
-        this.marketid = m.marketid;
-        this.object = m.object;
-        this.askprice = m.askprice;
-        this.settleinfo = m.settleinfo;
-        this.bidder = m.bidder;
-    }
 
-    static fromMongooseDoc(doc: mongoose.Document): IndexedObject {
-        const obj = doc.toObject({
-            transform: (_doc, ret) => {
-                delete ret._id;
-                return ret;
-            }
-        });
 
-        // Convert the second value into its 8 little-endian bytes.
-        // const leBytes = toLEBytes(obj.attributes);
-
-        return new IndexedObject(obj);
-    }
-
-    toMongooseDoc(): mongoose.Document {
-        return new IndexedObjectModel(this.toObject());
+    constructor(index: number, data: bigint[]) {
+        this.index = index;
+        this.data = data;
     }
 
     toObject() {
-        return {
-            marketid: this.marketid,
-            askprice: this.askprice,
-            settleinfo: this.settleinfo,
-            object: this.object,
-            bidder: this.bidder,
-        };
+        let decoder = new CardDecoder();
+        return Market.fromData(this.data, decoder)
     }
 
     toJSON() {
@@ -72,10 +59,15 @@ export class IndexedObject {
     }
 
     static fromEvent(data: BigUint64Array): IndexedObject {
-        let marketinfo = fromData(Array.from(data.slice(1)), new CardDecoder());
-        return new IndexedObject(marketinfo)
+        return new IndexedObject(Number(data[0]),  Array.from(data.slice(1)))
+    }
+
+    async storeObject() {
+        let obj = this.toObject() as any;
+        let doc = await MarketObjectModel.findOneAndUpdate({marketid: obj.marketid}, obj, {upsert: true});
+        return doc;
     }
 }
 
 // Create the Token model
-export const IndexedObjectModel = mongoose.model('IndexedObject', marketObjectSchema);
+export const MarketObjectModel = mongoose.model('IndexedObject', Market.marketObjectSchema);

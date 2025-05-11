@@ -59,6 +59,7 @@ lazy_static::lazy_static! {
 
 impl BidObject<PlayerData> for MarketInfo<Card, PlayerData> {
     const INSUFF:u32 = ERROR_BID_PRICE_INSUFFICIENT;
+    const NOBID:u32 = ERROR_NO_BIDDER;
     fn get_bidder(&self) -> Option<BidInfo> {
         self.bid
     }
@@ -66,18 +67,26 @@ impl BidObject<PlayerData> for MarketInfo<Card, PlayerData> {
     fn set_bidder(&mut self, bidder: Option<BidInfo>) {
         self.bid = bidder;
     }
+    fn get_owner(&self) -> [u64; 2] {
+        self.owner
+    }
+
+    fn set_owner(&mut self, pid: [u64; 2]) { 
+        self.owner = pid 
+    }
 }
 
 pub struct MarketCard (pub MarketInfo<Card, PlayerData>);
 
 impl MarketCard {
-    pub fn new(marketid: u64, askprice: u64, settleinfo: u64, bid: Option<BidInfo>, object: Card) -> Self {
+    pub fn new(marketid: u64, askprice: u64, settleinfo: u64, bid: Option<BidInfo>, object: Card, owner: [u64; 2]) -> Self {
         MarketCard (MarketInfo {
             marketid,
             askprice,
             settleinfo,
             bid,
             object,
+            owner,
             user: PhantomData
         })
     }

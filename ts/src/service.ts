@@ -1,5 +1,5 @@
 import { TxWitness, Service, Event, EventModel, TxStateManager } from "zkwasm-ts-server";
-import { IndexedObjectModel, IndexedObject} from "./info.js";
+import { MarketObjectModel, docToJSON, IndexedObject} from "./info.js";
 import { Express } from "express";
 //import {clearTxFromCommit, CommitModel, getTxFromCommit, insertTxIntoCommit} from "./commits.js";
 import {merkleRootToBeHexString} from "zkwasm-ts-server/src/lib.js";
@@ -17,11 +17,11 @@ function extra (app: Express) {
       try {
           let pid1 = req.params.pid1;
           let pid2 = req.params.pid2;
-          let doc = await IndexedObjectModel.find(
+          let doc = await MarketObjectModel.find(
               {"bidder.bidder": [BigInt(pid1), BigInt(pid2)]},
           );
           let data = doc.map((d) => {
-              return IndexedObject.fromMongooseDoc(d).toJSON()
+              return docToJSON(d);
           })
           res.status(201).send({
               success: true,
@@ -34,11 +34,10 @@ function extra (app: Express) {
   });
 
   app.get('/data/markets', async(_req:any, res) => {
-      const doc = await IndexedObjectModel.find();
+      const doc = await MarketObjectModel.find();
       try {
           const jdoc = doc.map((d) => {
-              const jdoc = IndexedObject.fromMongooseDoc(d);
-              return jdoc.toJSON();
+              return docToJSON(d);
           });
           res.status(201).send({
               success: true,
@@ -55,7 +54,7 @@ function extra (app: Express) {
 service.serve();
 
 const EVENT_POSITION_UPDATE = 1;
-const EVENT_CARD_UPDATE = 2;
+const EVENT_MARKET_UPDATE = 2;
 
 async function batchedCallback(arg: TxWitness[], _preMerkle: string, postMerkle: string) {
   await txStateManager.moveToCommit(postMerkle);
@@ -109,10 +108,10 @@ async function eventCallback(arg: TxWitness, data: BigUint64Array) {
                 console.log("position event");
             }
             break;
-            case EVENT_CARD_UPDATE:
+            case EVENT_MARKET_UPDATE:
                 {
                 let obj = IndexedObject.fromEvent(eventData);
-                await IndexedObjectModel.findOneAndUpdate({marketid: obj.marketid}, obj.toObject(), {upsert: true});
+                await obj.storeObject();
             }
             break;
             default:

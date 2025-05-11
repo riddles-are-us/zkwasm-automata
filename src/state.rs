@@ -199,7 +199,7 @@ impl CommandHandler for ListCardInMarket {
                 let mut state = STATE.0.borrow_mut();
                 player.check_and_inc_nonce(nonce);
                 let id = state.market_id;
-                let marketcard = player.data.list_card_in_market(self.card_index, self.ask_price, id)?;
+                let marketcard = player.data.list_card_in_market(self.card_index, self.ask_price, id, *pid)?;
                 player.data.pay_cost(0)?;
                 let marketcard = MarketCard::new_object(marketcard, id);
                 player.store();
@@ -429,6 +429,7 @@ impl Transaction {
             ERROR_NOT_ENOUGH_POOL => "NotEnoughFundInPool",
             ERROR_CARD_IS_IN_USE => "CardIsInUse",
             ERROR_BID_PRICE_INSUFFICIENT => "BidPriceInSufficient",
+            ERROR_NO_BIDDER=> "NoBidder",
             _ => "Unknown",
         }
     }

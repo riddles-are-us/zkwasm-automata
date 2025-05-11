@@ -191,7 +191,7 @@ impl PlayerData {
         return false;
     }
 
-    pub fn list_card_in_market(&mut self, card_index: usize, price: u64, marketid: u64) -> Result<MarketCard, u32> {
+    pub fn list_card_in_market(&mut self, card_index: usize, price: u64, marketid: u64, owner: [u64; 2]) -> Result<MarketCard, u32> {
         if card_index < self.cards.len() {
             if self.card_used(card_index) {
                 Err(ERROR_CARD_IS_IN_USE)
@@ -207,12 +207,29 @@ impl PlayerData {
                         0,
                         None,
                         card.clone(),
+                        owner,
                     );
                     Ok(market_card)
                 }
             }
         } else {
             Err(ERROR_INDEX_OUT_OF_BOUND)
+        }
+    }
+
+    pub fn remove_card(&mut self, card_index: usize) {
+        if self.cards.len() == card_index + 1 {// the last element
+          self.cards.swap_remove(card_index);
+        } else {
+            let last = self.cards.len() - 1;
+            self.cards.swap_remove(card_index);
+            for obj in self.objects.iter_mut() {
+                for cid in obj.cards.iter_mut() {
+                    if *cid == last as u8 {
+                        *cid = card_index as u8;
+                    }
+                }
+            }
         }
     }
 
@@ -225,9 +242,10 @@ impl PlayerData {
                 let wrapped_market_card = MarketCard::get_object(marketid).unwrap();
                 if let Some(b) = wrapped_market_card.data.0.get_bidder() {
                     self.inc_balance(b.bidprice);
+                    self.remove_card(card_index);
                     Ok(wrapped_market_card)
                 } else {
-                    Err(ERROR_CARD_IS_IN_USE)
+                    Err(ERROR_NO_BIDDER)
                 }
             } else {
                 Err(ERROR_INDEX_OUT_OF_BOUND)

@@ -32,6 +32,26 @@ function extra (app: Express) {
           res.status(500).send()
       }
   });
+  app.get('/data/sell/:pid1/:pid2', async(req:any, res) => {
+      try {
+          let pid1 = req.params.pid1;
+          let pid2 = req.params.pid2;
+          let doc = await MarketObjectModel.find(
+              {"owner": [BigInt(pid1), BigInt(pid2)]},
+          );
+          let data = doc.map((d) => {
+              return docToJSON(d);
+          })
+          res.status(201).send({
+              success: true,
+              data: data,
+          });
+      } catch (e) {
+          console.log(e);
+          res.status(500).send()
+      }
+  });
+
 
   app.get('/data/markets', async(_req:any, res) => {
       const doc = await MarketObjectModel.find();

@@ -96,6 +96,11 @@ impl CommandHandler for InstallObject {
                 } else {
                     player.data.pay_cost(1000)?;
                     let cards = self.modifiers;
+                    for idx in cards.iter() {
+                        if (*idx as usize) >= player.data.cards.len() {
+                            return Err(ERROR_INDEX_OUT_OF_BOUND);
+                        }
+                    }
                     let mut object = Object::new(cards);
                     let counter = STATE.0.borrow().queue.counter;
                     object.start_new_modifier(0, counter);
@@ -129,6 +134,11 @@ impl CommandHandler for RestartObject {
                 player.check_and_inc_nonce(nonce);
                 player.data.pay_cost(0)?;
                 let counter = STATE.0.borrow().queue.counter;
+                for idx in self.modifiers.iter() {
+                    if (*idx as usize) >= player.data.cards.len() {
+                        return Err(ERROR_INDEX_OUT_OF_BOUND);
+                    }
+                }
                 if let Some(delay) = player.data.restart_object_card(
                     self.object_index,
                     self.modifiers,

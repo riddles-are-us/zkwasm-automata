@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { Market } from 'zkwasm-ts-server';
+import { Market, ObjectEvent } from 'zkwasm-ts-server';
 
 (BigInt.prototype as any).toJSON = function () {
       return this.toString();
@@ -10,7 +10,7 @@ interface Card {
   attributes: bigint;
 }
 
-class CardDecoder implements Market.Decodable<Card> {
+class CardDecoder implements ObjectEvent.Decodable<Card> {
   constructor() {
   }
   fromData(u64data: bigint[]): Card {
@@ -34,6 +34,8 @@ export function docToJSON(doc: mongoose.Document) {
     return obj;
 }
 
+const CARD_INFO = 1;
+const MARKET_INFO = 2;
 
 
 export class IndexedObject {
@@ -51,7 +53,14 @@ export class IndexedObject {
 
     toObject() {
         let decoder = new CardDecoder();
-        return Market.fromData(this.data, decoder)
+        if (this.index == CARD_INFO) {
+            return decoder.fromData(this.data);
+        } else if (this.index == MARKET_INFO) {
+            return Market.fromData(this.data, decoder);
+        } else {
+            console.log("fatal, unexpected object index");
+            process.exit();
+        }
     }
 
     toJSON() {
@@ -64,10 +73,28 @@ export class IndexedObject {
 
     async storeObject() {
         let obj = this.toObject() as any;
-        let doc = await MarketObjectModel.findOneAndUpdate({marketid: obj.marketid}, obj, {upsert: true});
-        return doc;
+        if (this.index == CARD_INFO) {
+            let doc = await CardObjectModel.findOneAndUpdate({id: obj.id}, obj, {upsert: true});
+            return doc;
+        } else if (this.index == MARKET_INFO) {
+            let doc = await MarketObjectModel.findOneAndUpdate({marketid: obj.marketid}, obj, {upsert: true});
+            return doc;
+        }
     }
 }
 
+// Define the schema for the Token model
+const CardObjectSchema = new mongoose.Schema({
+  id: { type: BigInt, required: true, unique: true},
+  duration: {type: BigInt, required: true},
+  attributes: {type: BigInt, required: true},
+  marketid: {type: BigInt, required: true},
+});
+
+const MarketObjectSchema = Market.createMarketSchema(CardObjectSchema);
+
+CardObjectSchema.pre('init', ObjectEvent.uint64FetchPlugin);
+
 // Create the Token model
-export const MarketObjectModel = mongoose.model('IndexedObject', Market.marketObjectSchema);
+export const MarketObjectModel = mongoose.model('MarketObject', MarketObjectSchema);
+export const CardObjectModel = mongoose.model('NuggetObject', CardObjectSchema);

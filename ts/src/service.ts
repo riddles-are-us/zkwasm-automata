@@ -20,7 +20,7 @@ function extra (app: Express) {
           let doc = await MarketObjectModel.find(
               {"bidder.bidder": [BigInt(pid1), BigInt(pid2)]},
           );
-          let data = doc.map((d) => {
+          let data = doc.map((d: any) => {
               return docToJSON(d);
           })
           res.status(201).send({
@@ -39,7 +39,7 @@ function extra (app: Express) {
           let doc = await MarketObjectModel.find(
               {"owner": [BigInt(pid1), BigInt(pid2)]},
           );
-          let data = doc.map((d) => {
+          let data = doc.map((d: any) => {
               return docToJSON(d);
           })
           res.status(201).send({
@@ -56,7 +56,7 @@ function extra (app: Express) {
   app.get('/data/markets', async(_req:any, res) => {
       const doc = await MarketObjectModel.find();
       try {
-          const jdoc = doc.map((d) => {
+          const jdoc = doc.map((d: any) => {
               return docToJSON(d);
           });
           res.status(201).send({

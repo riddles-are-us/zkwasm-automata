@@ -3,6 +3,7 @@ import { MarketObjectModel, docToJSON, IndexedObject} from "./info.js";
 import { Express } from "express";
 //import {clearTxFromCommit, CommitModel, getTxFromCommit, insertTxIntoCommit} from "./commits.js";
 import {merkleRootToBeHexString} from "zkwasm-ts-server/src/lib.js";
+import mongoose from "mongoose";
 
 const playerIndexer = (player: any) => player.data.level;
 
@@ -13,61 +14,100 @@ await service.initialize();
 let txStateManager = new TxStateManager(merkleRootToBeHexString(service.merkleRoot));
 
 function extra (app: Express) {
-  app.get('/data/bid/:pid1/:pid2', async(req:any, res) => {
-      try {
-          let pid1 = req.params.pid1;
-          let pid2 = req.params.pid2;
-          let doc = await MarketObjectModel.find(
-              {"bidder.bidder": [BigInt(pid1), BigInt(pid2)]},
-          );
-          let data = doc.map((d: any) => {
-              return docToJSON(d);
-          })
-          res.status(201).send({
-              success: true,
-              data: data,
-          });
-      } catch (e) {
-          console.log(e);
-          res.status(500).send()
-      }
-  });
-  app.get('/data/sell/:pid1/:pid2', async(req:any, res) => {
-      try {
-          let pid1 = req.params.pid1;
-          let pid2 = req.params.pid2;
-          let doc = await MarketObjectModel.find(
-              {"owner": [BigInt(pid1), BigInt(pid2)]},
-          );
-          let data = doc.map((d: any) => {
-              return docToJSON(d);
-          })
-          res.status(201).send({
-              success: true,
-              data: data,
-          });
-      } catch (e) {
-          console.log(e);
-          res.status(500).send()
-      }
-  });
 
-
-  app.get('/data/markets', async(_req:any, res) => {
-      const doc = await MarketObjectModel.find();
+    app.get("/data/bid/:pid1/:pid2", async (req: any, res) => {
       try {
-          const jdoc = doc.map((d: any) => {
-              return docToJSON(d);
-          });
-          res.status(201).send({
-              success: true,
-              data: jdoc,
-          });
+        let pid1 = req.params.pid1;
+        let pid2 = req.params.pid2;
+        const skip = parseInt(req.query.skip) || 0;
+        const limit = parseInt(req.query.limit) || 30;
+        const [count, doc] = await Promise.all([
+          MarketObjectModel.countDocuments({
+            settleinfo: { $ne: BigInt(2) },
+            "bidder.bidder": [pid1, pid2],
+          }),
+          MarketObjectModel.find({
+            settleinfo: { $ne: BigInt(2) },
+            "bidder.bidder": [pid1, pid2],
+          })
+            .skip(skip)
+            .limit(limit),
+        ]);
+  
+        let data = doc.map((d: mongoose.Document) => {
+          return docToJSON(d);
+        });
+        console.log(data);
+        res.status(201).send({
+          success: true,
+          data: data,
+          count: count,
+        });
       } catch (e) {
-          console.log(e);
-          res.status(500).send()
+        console.log(e);
+        res.status(500).send();
       }
-  });
+    });
+
+    app.get("/data/sell/:pid1/:pid2", async (req: any, res) => {
+      try {
+        let pid1 = req.params.pid1;
+        let pid2 = req.params.pid2;
+        const skip = parseInt(req.query.skip) || 0;
+        const limit = parseInt(req.query.limit) || 30;
+        const [count, doc] = await Promise.all([
+          MarketObjectModel.countDocuments({
+            settleinfo: { $ne: BigInt(2) },
+            owner: [pid1, pid2],
+          }),
+          MarketObjectModel.find({
+            settleinfo: { $ne: BigInt(2) },
+            owner: [pid1, pid2],
+          })
+            .skip(skip)
+            .limit(limit),
+        ]);
+  
+        let data = doc.map((d: mongoose.Document) => {
+          return docToJSON(d);
+        });
+        console.log(data);
+        res.status(201).send({
+          success: true,
+          data: data,
+          count: count,
+        });
+      } catch (e) {
+        console.log(e);
+        res.status(500).send();
+      }
+    });
+  
+    app.get("/data/markets", async (req: any, res) => {
+      try {
+        const skip = parseInt(req.query.skip) || 0;
+        const limit = parseInt(req.query.limit) || 30;
+        const [count, doc] = await Promise.all([
+          MarketObjectModel.countDocuments({ settleinfo: { $ne: BigInt(2) } }),
+          MarketObjectModel.find({ settleinfo: { $ne: BigInt(2) } })
+            .skip(skip)
+            .limit(limit),
+        ]);
+  
+        const data = doc.map((d) => {
+          return docToJSON(d);
+        });
+        console.log(data);
+        res.status(201).send({
+          success: true,
+          data: data,
+          count: count,
+        });
+      } catch (e) {
+        console.log(e);
+        res.status(500).send();
+      }
+    });
 }
 
 

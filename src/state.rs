@@ -196,14 +196,14 @@ impl CommandHandler for ListCardInMarket {
         match player.as_mut() {
             None => Err(ERROR_PLAYER_NOT_EXIST),
             Some(player) => {
-                let mut state = STATE.0.borrow_mut();
                 player.check_and_inc_nonce(nonce);
-                let id = state.market_id;
+                let id = STATE.0.borrow().market_id;
                 let marketcard = player.data.list_card_in_market(self.card_index, self.ask_price, id, *pid)?;
                 player.data.pay_cost(0)?;
                 let marketcard = MarketCard::new_object(marketcard, id);
                 player.store();
                 marketcard.store();
+                let mut state = STATE.0.borrow_mut();
                 state.market_id += 1;
                 state.event_id += 1;
                 MarketCard::emit_event(state.event_id, &marketcard.data);

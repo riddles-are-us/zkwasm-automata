@@ -120,7 +120,7 @@ export class Player extends PlayerConvention {
       if(e instanceof Error) {
         console.log(e.message);
       }
-      console.log("installCard error with processing key:", this.processingKey);
+      console.log("listCard error with processing key:", this.processingKey);
     }
   }
 
@@ -131,12 +131,12 @@ export class Player extends PlayerConvention {
         createCommand(nonce, CMD_SELL_CARD, [slotIndex]),
         this.processingKey
       );
-      console.log("listCard processed at:", finished);
+      console.log("sellCard processed at:", finished);
     } catch(e) {
       if(e instanceof Error) {
         console.log(e.message);
       }
-      console.log("installCard error with processing key:", this.processingKey);
+      console.log("sellCard error with processing key:", this.processingKey);
     }
   }
 
@@ -148,12 +148,12 @@ export class Player extends PlayerConvention {
         createCommand(nonce, CMD_BID_CARD, [index, price]),
         this.processingKey
       );
-      console.log("listCard processed at:", finished);
+      console.log("bidCard processed at:", finished);
     } catch(e) {
       if(e instanceof Error) {
         console.log(e.message);
       }
-      console.log("installCard error with processing key:", this.processingKey);
+      console.log("bidCard error with processing key:", this.processingKey);
     }
   }
 

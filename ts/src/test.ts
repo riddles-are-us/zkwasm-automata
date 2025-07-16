@@ -13,11 +13,15 @@ async function main() {
   let config = await player.getConfig();
   console.log("config", config);
 
-  let pid = ["3563625733937835073","2929573097060223531"];
-  console.log("query bids...");
+  await player.installPlayer();
+  let state = await player.getState();
+  console.log("state", state);
 
-  let bids = await player.rpc.queryData(`bid/${BigInt(pid[0])}/${BigInt(pid[1])}`);
-  console.log("query bid...", bids);
+  console.log("Start run LIST_NUGGET ...");
+  await player.listCard(BigInt(0), BigInt(1000));
+
+  console.log("Start run LIST_NUGGET ...");
+  await player.listCard(BigInt(1), BigInt(1200));
 }
 
 main();

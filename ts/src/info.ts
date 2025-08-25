@@ -34,10 +34,6 @@ export function docToJSON(doc: mongoose.Document) {
     return obj;
 }
 
-const CARD_INFO = 1;
-const MARKET_INFO = 2;
-
-
 export class IndexedObject {
     // token idx
     index: number;
@@ -53,14 +49,7 @@ export class IndexedObject {
 
     toObject() {
         let decoder = new CardDecoder();
-        if (this.index == CARD_INFO) {
-            return decoder.fromData(this.data);
-        } else if (this.index == MARKET_INFO) {
-            return Market.fromData(this.data, decoder);
-        } else {
-            console.log("fatal, unexpected object index");
-            process.exit();
-        }
+        return Market.fromData(this.data, decoder);
     }
 
     toJSON() {
@@ -73,22 +62,16 @@ export class IndexedObject {
 
     async storeObject() {
         let obj = this.toObject() as any;
-        if (this.index == CARD_INFO) {
-            let doc = await CardObjectModel.findOneAndUpdate({id: obj.id}, obj, {upsert: true});
-            return doc;
-        } else if (this.index == MARKET_INFO) {
-            let doc = await MarketObjectModel.findOneAndUpdate({marketid: obj.marketid}, obj, {upsert: true});
-            return doc;
-        }
+        console.log("object is:", obj);
+        let doc = await MarketObjectModel.findOneAndUpdate({marketid: obj.marketid}, obj, {upsert: true});
+        return doc;
     }
 }
 
 // Define the schema for the Token model
 const CardObjectSchema = new mongoose.Schema({
-  id: { type: BigInt, required: true, unique: true},
   duration: {type: BigInt, required: true},
   attributes: {type: BigInt, required: true},
-  marketid: {type: BigInt, required: true},
 });
 
 const MarketObjectSchema = Market.createMarketSchema(CardObjectSchema);

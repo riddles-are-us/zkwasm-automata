@@ -164,7 +164,7 @@ async function eventCallback(arg: TxWitness, data: BigUint64Array) {
         console.log("event", eventType, eventLength, eventData);
         switch(eventType) {
             case EVENT_POSITION_UPDATE:
-                {
+            {
                 console.log("position event");
             }
             break;

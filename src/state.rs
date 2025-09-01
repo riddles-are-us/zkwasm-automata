@@ -231,6 +231,8 @@ impl CommandHandler for SellCard {
                 // Shold not error from this point
                 if let Some(b) = marketcard.data.0.get_bidder() {
                     let mut bidder = AutomataPlayer::get_from_pid(&b.bidder).unwrap();
+                    marketcard.data.0.object.marketid = 0;
+                    marketcard.store();
                     bidder.data.cards.push(marketcard.data.0.object.clone());
                     bidder.store();
                 }
@@ -263,6 +265,7 @@ impl CommandHandler for BidCard {
                 let mut marketcard = MarketCard::get_object(self.marketindex).unwrap();
                 if marketcard.data.0.askprice <= self.price { // direct get the card
                     marketcard.data.0.settleinfo = 2;
+                    marketcard.data.0.object.marketid = 0;
                     let prev_bidder = marketcard.data.0.replace_bidder(player, self.price)?;
                     prev_bidder.map(|x| x.store());
                     let mut global = STATE.0.borrow_mut();

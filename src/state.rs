@@ -271,6 +271,11 @@ impl CommandHandler for BidCard {
                     let mut global = STATE.0.borrow_mut();
                     player.data.cards.push(marketcard.data.0.object.clone());
                     player.store();
+                    let mut owner = marketcard.data.0.deal()?;
+                    if let Some(card_index) = owner.data.cards.iter().position(|c| c.marketid == marketcard.data.0.marketid) {
+                        owner.data.remove_card(card_index);
+                    }
+                    owner.store();
                     marketcard.store();
                     MarketCard::emit_event(global.event_id, &marketcard.data);
                     global.event_id += 1;

@@ -19,6 +19,7 @@ use zkwasm_rest_convention::WithBalance;
 use zkwasm_rest_convention::SettlementInfo;
 use zkwasm_rest_convention::IndexedObject;
 use zkwasm_rest_convention::BidObject;
+use zkwasm_rest_convention::BidInfo;
 use zkwasm_rest_convention::clear_events;
 use zkwasm_rest_abi::enforce;
 
@@ -283,7 +284,12 @@ impl CommandHandler for BidCard {
                 } else if marketcard.data.0.object.marketid != 0 {
                     let prev_bidder = marketcard.data.0.get_bidder();
                     if prev_bidder.map_or(false, |x| x.bidder == player.player_id) {
-                        player.data.cost_balance(self.price - prev_bidder.expect("").bidprice);
+                        let bidprice = prev_bidder.expect("").bidprice;
+                        player.data.cost_balance(self.price - bidprice);
+                        marketcard.data.0.set_bidder(Some (BidInfo {
+                            bidprice: self.price,
+                            bidder: player.player_id.clone(),
+                        }));
                     } else {
                         let prev_bidder = marketcard.data.0.replace_bidder(player, self.price)?;
                         prev_bidder.map(|x| x.store());

@@ -281,9 +281,15 @@ impl CommandHandler for BidCard {
                     global.event_id += 1;
                     Ok(())
                 } else if marketcard.data.0.object.marketid != 0 {
-                    let prev_bidder = marketcard.data.0.replace_bidder(player, self.price)?;
+                    let prev_bidder = marketcard.data.0.get_bidder();
+                    if prev_bidder.map_or(false, |x| x.bidder == player.player_id) {
+                        player.data.cost_balance(self.price - prev_bidder.expect("").bidprice);
+                    } else {
+                        let prev_bidder = marketcard.data.0.replace_bidder(player, self.price)?;
+                        prev_bidder.map(|x| x.store());
+                    }
+
                     player.store();
-                    prev_bidder.map(|x| x.store());
                     let mut global = STATE.0.borrow_mut();
                     marketcard.data.0.settleinfo = 1;
                     marketcard.store();

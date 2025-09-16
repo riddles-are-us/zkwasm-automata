@@ -55,7 +55,7 @@ pub enum Command {
     Deposit(Deposit),
     Bounty(Bounty),
     InstallPlayer,
-    CollectEnergy,
+    CollectEnergy(CollectEnergy),
     Tick,
 }
 
@@ -421,6 +421,25 @@ impl CommandHandler for Withdraw {
 }
 
 
+#[derive (Clone)]
+pub struct CollectEnergy {
+}
+
+impl CommandHandler for CollectEnergy {
+    fn handle(&self, pid: &[u64; 2], nonce: u64, _rand: &[u64; 4]) -> Result<(), u32> {
+        let mut player = AutomataPlayer::get_from_pid(pid);
+        match player.as_mut() {
+            None => Err(ERROR_PLAYER_ALREADY_EXIST),
+            Some(player) => {
+                player.check_and_inc_nonce(nonce);
+                let counter = STATE.0.borrow().queue.counter;
+                player.data.collect_energy(counter)?;
+                player.store();
+                Ok(())
+            }
+        }
+    }
+}
 
 
 
@@ -505,7 +524,7 @@ impl Transaction {
         } else if cmd == INSTALL_PLAYER {
             Command::InstallPlayer
         } else if cmd == COLLECT_ENERGY {
-            Command::CollectEnergy
+            Command::CollectEnergy(CollectEnergy {})
         } else {
             Command::Tick
         };
@@ -563,7 +582,7 @@ impl Transaction {
                 .map_or_else(|e| e, |_| 0),
             Command::InstallObject(cmd) => cmd.handle(&AutomataPlayer::pkey_to_pid(&pkey), self.nonce, rand)
                 .map_or_else(|e| e, |_| 0),
-            Command::CollectEnergy => Self::collect_energy(&AutomataPlayer::pkey_to_pid(&pkey))
+            Command::CollectEnergy(cmd) => cmd.handle(&AutomataPlayer::pkey_to_pid(&pkey), self.nonce, rand)
                 .map_or_else(|e| e, |_| 0),
             Command::RestartObject(cmd) => cmd.handle(&AutomataPlayer::pkey_to_pid(&pkey), self.nonce, rand)
                 .map_or_else(|e| e, |_| 0),

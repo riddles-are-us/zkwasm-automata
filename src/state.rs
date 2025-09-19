@@ -433,7 +433,7 @@ impl CommandHandler for CollectEnergy {
             Some(player) => {
                 player.check_and_inc_nonce(nonce);
                 let counter = STATE.0.borrow().queue.counter;
-                player.data.collect_energy(counter)?;
+                player.data.collect_energy(counter);
                 player.store();
                 Ok(())
             }
@@ -555,7 +555,7 @@ impl Transaction {
         let counter = STATE.0.borrow().queue.counter;
         match player {
             Some(mut player) => {
-                player.data.collect_energy(counter)?;
+                player.data.collect_energy(counter);
                 player.store();
                 Ok(())
             }

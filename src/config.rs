@@ -20,6 +20,7 @@ pub struct Config {
     local_attributes: [&'static str; LOCAL_ATTRIBUTES_SIZE],
     bounty_cost_base: u64, // , 2, 4, 8, ....  index < 2: 0, index >=2:  cost_exp ^(level-2)
     bounty_reward_base: u64,
+    redeem_energy_cooldown: u64,
 }
 
 /* bounty info
@@ -105,11 +106,12 @@ pub fn random_modifier(lvl: i64, _current_resource: [i64; LOCAL_ATTRIBUTES_SIZE]
 
 lazy_static::lazy_static! {
     pub static ref CONFIG: Config = Config {
-        version: "1.5",
+        version: "1.5.1",
         bounty_cost_base : 2,
         bounty_reward_base: 4,
         entity_attributes: ["Level", "Speed", "Efficiency", "Producitivity"],
         local_attributes: ["Engery Crystal", "Instellar Mineral", "Biomass", "Quantum Foam", "Necrodermis", "Alien Floral", "Spice Melange", "Titanium"],
+        redeem_energy_cooldown: 1000,
     };
 }
 
@@ -131,5 +133,9 @@ impl Config {
 
     pub fn get_bounty_reward(&self, redeem_info: u64) -> u64 {
         return self.bounty_reward_base * (redeem_info + 1);
+    }
+
+    pub fn get_redeem_energy_cooldown(&self) -> u64 {
+        return self.redeem_energy_cooldown;
     }
 }

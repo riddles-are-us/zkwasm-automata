@@ -1,5 +1,5 @@
 use crate::card::{Card, DEFAULT_CARDS};
-use crate::config::{COST_INCREASE_ROUND, COST_INCREASE_ROUND_INITIAL};
+use crate::config::{CONFIG, COST_INCREASE_ROUND, COST_INCREASE_ROUND_INITIAL};
 use crate::config::{default_local, random_modifier, INITIAL_ENERGY};
 use crate::error::*;
 use crate::object::Object;
@@ -153,7 +153,7 @@ impl PlayerData {
 
     pub fn collect_energy(&mut self, counter: u64){
         let delta = counter - (self.last_check_point as u64);
-        if delta >= 1000 {
+        if delta >= CONFIG.get_redeem_energy_cooldown() {
             let energy = (self.energy as u32) + ((self.get_balance() / 10000) + 1).ilog2() * (self.level as u32);
             if energy > 0xffff {
                 self.energy = 0xffff

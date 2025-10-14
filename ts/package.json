@@ -23,7 +23,7 @@
     "zkwasm-minirollup-rpc": "github:DelphinusLab/zkWasm-minirollup-rpc",
     "zkwasm-service-cli": "github:DelphinusLab/zkWasm-service-cli",
     "zkwasm-service-helper": "^1.0.0",
-    "zkwasm-ts-server": "https://gitpkg.vercel.app/DelphinusLab/zkwasm-mini-rollup/ts?xgao/dev"
+    "zkwasm-ts-server": "https://gitpkg.vercel.app/DelphinusLab/zkwasm-mini-rollup/ts?charlie/cors"
   },
   "scripts": {
     "build": "npx tsc",

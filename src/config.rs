@@ -106,7 +106,7 @@ pub fn random_modifier(lvl: i64, _current_resource: [i64; LOCAL_ATTRIBUTES_SIZE]
 
 lazy_static::lazy_static! {
     pub static ref CONFIG: Config = Config {
-        version: "1.5.1",
+        version: "1.5.2",
         bounty_cost_base : 2,
         bounty_reward_base: 4,
         entity_attributes: ["Level", "Speed", "Efficiency", "Producitivity"],

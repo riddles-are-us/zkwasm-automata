@@ -177,7 +177,8 @@ impl PlayerData {
         self.last_interest_stamp = (self.get_balance() << 32) + counter;
 
         // TODO: cost balance needs check interest bound
-        self.cost_balance(interest as u64 - 100)
+        self.inc_balance(interest as u64 - 100);
+        Ok(())
     }
 
     fn card_used(&self, card_index: usize) -> bool {

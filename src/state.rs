@@ -224,6 +224,8 @@ pub struct SellCard {
 impl CommandHandler for SellCard {
     fn handle(&self, pid: &[u64; 2], nonce: u64, _rand: &[u64; 4]) -> Result<(), u32> {
         let mut player = AutomataPlayer::get_from_pid(pid);
+        let mut state = STATE.0.borrow_mut();
+        let counter = state.queue.counter;
         match player.as_mut() {
             None => Err(ERROR_PLAYER_NOT_EXIST),
             Some(player) => {
@@ -240,10 +242,10 @@ impl CommandHandler for SellCard {
                 //marketcard.data.0.set_bidder(None);
                 marketcard.data.0.settleinfo = 2;
                 marketcard.store();
-                let mut global = STATE.0.borrow_mut();
+                player.data.update_interest(counter);
                 player.store();
-                MarketCard::emit_event(global.event_id, &marketcard.data);
-                global.event_id += 1;
+                MarketCard::emit_event(state.event_id, &marketcard.data);
+                state.event_id += 1;
                 Ok(())
             }
         }
@@ -259,6 +261,8 @@ pub struct BidCard {
 impl CommandHandler for BidCard {
     fn handle(&self, pid: &[u64; 2], nonce: u64, _rand: &[u64; 4]) -> Result<(), u32> {
         let mut player = AutomataPlayer::get_from_pid(pid);
+        let mut state = STATE.0.borrow_mut();
+        let counter = state.queue.counter;
         match player.as_mut() {
             None => Err(ERROR_PLAYER_NOT_EXIST),
             Some(player) => {
@@ -268,39 +272,46 @@ impl CommandHandler for BidCard {
                     marketcard.data.0.settleinfo = 2;
                     marketcard.data.0.object.marketid = 0;
                     let prev_bidder = marketcard.data.0.replace_bidder(player, self.price)?;
-                    prev_bidder.map(|x| x.store());
-                    let mut global = STATE.0.borrow_mut();
+                    prev_bidder.map(|mut x| {
+                        x.data.update_interest(counter);
+                        x.store();
+                    });
                     player.data.cards.push(marketcard.data.0.object.clone());
+                    player.data.update_interest(counter);
                     player.store();
                     let mut owner = marketcard.data.0.deal()?;
                     if let Some(card_index) = owner.data.cards.iter().position(|c| c.marketid == marketcard.data.0.marketid) {
                         owner.data.remove_card(card_index);
                     }
+                    owner.data.update_interest(counter);
                     owner.store();
                     marketcard.store();
-                    MarketCard::emit_event(global.event_id, &marketcard.data);
-                    global.event_id += 1;
+                    MarketCard::emit_event(state.event_id, &marketcard.data);
+                    state.event_id += 1;
                     Ok(())
                 } else if marketcard.data.0.object.marketid != 0 {
                     let prev_bidder = marketcard.data.0.get_bidder();
                     if prev_bidder.map_or(false, |x| x.bidder == player.player_id) {
                         let bidprice = prev_bidder.expect("").bidprice;
                         player.data.cost_balance(self.price - bidprice);
+                        player.data.update_interest(counter);
                         marketcard.data.0.set_bidder(Some (BidInfo {
                             bidprice: self.price,
                             bidder: player.player_id.clone(),
                         }));
                     } else {
                         let prev_bidder = marketcard.data.0.replace_bidder(player, self.price)?;
-                        prev_bidder.map(|x| x.store());
+                        prev_bidder.map(|mut x| {
+                            x.data.update_interest(counter);
+                            x.store();
+                        });
                     }
 
                     player.store();
-                    let mut global = STATE.0.borrow_mut();
                     marketcard.data.0.settleinfo = 1;
                     marketcard.store();
-                    MarketCard::emit_event(global.event_id, &marketcard.data);
-                    global.event_id += 1;
+                    MarketCard::emit_event(state.event_id, &marketcard.data);
+                    state.event_id += 1;
                     Ok(())
                 } else {
                     Err(ERROR_CARD_IS_IN_USE)

@@ -293,7 +293,7 @@ impl CommandHandler for BidCard {
                     let prev_bidder = marketcard.data.0.get_bidder();
                     if prev_bidder.map_or(false, |x| x.bidder == player.player_id) {
                         let bidprice = prev_bidder.expect("").bidprice;
-                        player.data.cost_balance(self.price - bidprice);
+                        player.data.cost_balance(self.price - bidprice)?;
                         player.data.update_interest(counter);
                         marketcard.data.0.set_bidder(Some (BidInfo {
                             bidprice: self.price,
@@ -383,12 +383,12 @@ impl CommandHandler for Deposit {
         match player.as_mut() {
             None => {
                 let mut player = AutomataPlayer::new_from_pid([self.data[0], self.data[1]]);
-                player.data.cost_balance(self.data[2])?;
+                player.data.inc_balance(self.data[2]);
                 player.data.update_interest(counter);
                 player.store();
             }
             Some(player) => {
-                player.data.cost_balance(self.data[2])?;
+                player.data.inc_balance(self.data[2]);
                 player.data.update_interest(counter);
                 player.store();
             }
@@ -444,7 +444,7 @@ impl CommandHandler for CollectEnergy {
             Some(player) => {
                 player.check_and_inc_nonce(nonce);
                 let counter = STATE.0.borrow().queue.counter;
-                player.data.collect_energy(counter);
+                player.data.collect_energy(counter)?;
                 player.store();
                 Ok(())
             }
@@ -566,7 +566,7 @@ impl Transaction {
         let counter = STATE.0.borrow().queue.counter;
         match player {
             Some(mut player) => {
-                player.data.collect_energy(counter);
+                player.data.collect_energy(counter)?;
                 player.store();
                 Ok(())
             }

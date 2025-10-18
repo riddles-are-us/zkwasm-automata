@@ -151,7 +151,7 @@ impl PlayerData {
         }
     }
 
-    pub fn collect_energy(&mut self, counter: u64){
+    pub fn collect_energy(&mut self, counter: u64) -> Result <(), u32> {
         let delta = counter - (self.last_check_point as u64);
         if delta >= CONFIG.get_redeem_energy_cooldown() {
             let energy = (self.energy as u32) + ((self.get_balance() / 10000) + 1).ilog2() * (self.level as u32);
@@ -161,8 +161,10 @@ impl PlayerData {
                 self.energy = energy as u16
             }
             self.last_check_point = counter as u32;
-            self.cost_balance(1);
-        } 
+            self.cost_balance(1)
+        } else {
+            Ok(())
+        }
     }
 
     pub fn collect_interest(&mut self, counter: u64) -> Result <(), u32> {

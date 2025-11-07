@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The template offers a timer-based mining system that ensures the fair distribution of points (rewards). The entire system operates within the ZKWASM virtual machine, which functions as a trustless REST service (Layer 3), providing mining results along with their cryptographic proofs to the target blockchain (Layer 1 or Layer 2).
+The template offers a timer-based mining system that ensures the fair distribution of points (rewards). The entire system operates within the ZKWASM virtual machine, which functions as a trustless REST service (Layer 3), providing mining results along with their cryptographic proofs to the target blockchain (Layer 1 or Layer 2), for example, BNB Chain.
 
 In this system, players manage their miners (robots) by assigning them cards (activities). Each activity lasts a few minutes, and upon completion, it generates different types of resources at the cost of other resources. The player's objective is to strategically manage a team of robots, optimizing their activities to produce the maximum amount of the target resource.
 
